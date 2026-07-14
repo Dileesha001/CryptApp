@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DarkTheme as NavDarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import * as Font from 'expo-font';
 import {
@@ -28,9 +28,12 @@ import { colors } from './src/theme';
 
 const Stack = createNativeStackNavigator();
 
+// Spread NavDarkTheme to inherit the required `fonts` object (React Navigation v7 requires it).
+// Only override the colors to match CryptVault's palette.
 const NavTheme = {
-  dark: true,
+  ...NavDarkTheme,
   colors: {
+    ...NavDarkTheme.colors,
     primary:      colors.primary,
     background:   colors.bg1,
     card:         colors.bg2,

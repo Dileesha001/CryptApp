@@ -116,31 +116,33 @@ export default function DecryptScreen() {
 
   return (
     <View style={styles.root}>
+      {/* ── Header – full width, above scroll ── */}
+      <LinearGradient
+        colors={gradients.decrypt}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <View style={styles.headerOrb} />
+        <SafeAreaView edges={['top']} style={{ width: '100%', alignItems: 'center' }}>
+          <View style={styles.headerIconWrap}><Text style={styles.headerEmoji}>🔓</Text></View>
+          <Text style={styles.headerTitle}>Decrypt File</Text>
+          <Text style={styles.headerSub}>
+            Restore an encrypted file using{'\n'}the same key or password used to encrypt it.
+          </Text>
+
+          {/* HMAC badge */}
+          <View style={styles.hmacBadge}>
+            <Text style={styles.hmacText}>🛡️ HMAC-verified integrity check</Text>
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+
+      {/* ── Scrollable body ── */}
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scroll, { paddingHorizontal: pad }]}
         keyboardShouldPersistTaps="handled"
       >
-        {/* ── Header ── */}
-        <LinearGradient
-          colors={gradients.decrypt}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={styles.header}
-        >
-          <View style={styles.headerOrb} />
-          <SafeAreaView edges={['top']} style={{ width: '100%', alignItems: 'center' }}>
-            <View style={styles.headerIconWrap}><Text style={styles.headerEmoji}>🔓</Text></View>
-            <Text style={styles.headerTitle}>Decrypt File</Text>
-            <Text style={styles.headerSub}>
-              Restore an encrypted file using{'\n'}the same key or password used to encrypt it.
-            </Text>
-
-            {/* HMAC badge */}
-            <View style={styles.hmacBadge}>
-              <Text style={styles.hmacText}>🛡️ HMAC-verified integrity check</Text>
-            </View>
-          </SafeAreaView>
-        </LinearGradient>
 
         {/* ── Body ── */}
         <View style={[styles.body, isTablet && styles.bodyTablet]}>
@@ -237,12 +239,11 @@ export default function DecryptScreen() {
 
 const styles = StyleSheet.create({
   root:   { flex: 1, backgroundColor: colors.bg1 },
-  scroll: { paddingBottom: rs(48) },
+  scroll: { paddingBottom: rs(48), paddingTop: rs(24) },
 
   header: {
     alignItems: 'center', paddingBottom: rs(32),
     overflow: 'hidden',
-    marginHorizontal: -rs(20), marginTop: -rs(20), paddingTop: rs(20),
   },
   headerOrb: {
     position: 'absolute',
@@ -276,7 +277,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodyMed, fontSize: fontSize.xs, color: colors.white, letterSpacing: 0.3,
   },
 
-  body: { paddingTop: rs(24) },
+  body: { paddingTop: rs(4) },
   bodyTablet: { maxWidth: 640, alignSelf: 'center', width: '100%' },
 
   toggle: {

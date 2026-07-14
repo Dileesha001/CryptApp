@@ -20,6 +20,7 @@ import {
 export default function HomeScreen({ navigation }) {
   const { width } = useWindowDimensions();
   const isTablet  = width >= 768;
+  const isDesktop = width >= 1024;
 
   const fadeY = useRef(new Animated.Value(24)).current;
   const fade  = useRef(new Animated.Value(0)).current;
@@ -64,14 +65,13 @@ export default function HomeScreen({ navigation }) {
     <View style={styles.root}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* ── Hero ── */}
+      {/* ── Hero – always full width ── */}
       <LinearGradient
         colors={gradients.hero}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.hero}
       >
-        {/* Decorative orbs */}
         <View style={[styles.orb, styles.orb1]} />
         <View style={[styles.orb, styles.orb2]} />
         <View style={[styles.orb, styles.orb3]} />
@@ -83,19 +83,19 @@ export default function HomeScreen({ navigation }) {
               { paddingHorizontal: pad, opacity: fade, transform: [{ translateY: fadeY }] },
             ]}
           >
-            {/* App badge */}
             <View style={styles.appBadge}>
               <Text style={styles.appBadgeIcon}>🛡️</Text>
               <Text style={styles.appBadgeLabel}>CryptVault</Text>
             </View>
 
-            <Text style={styles.heroTitle}>Secure File{'\n'}Encryption</Text>
+            <Text style={[styles.heroTitle, isDesktop && styles.heroTitleLg]}>
+              Secure File{'\n'}Encryption
+            </Text>
             <Text style={styles.heroSub}>
               Military-grade protection for your files.{'\n'}
               Powered by AES-128-CBC + HMAC-SHA256.
             </Text>
 
-            {/* Chip row */}
             <View style={styles.chipRow}>
               {['Fernet Compatible', 'PBKDF2 · 600K iterations', 'Zero-knowledge'].map(t => (
                 <View key={t} style={styles.chip}>
@@ -112,39 +112,36 @@ export default function HomeScreen({ navigation }) {
         contentContainerStyle={[styles.scroll, { paddingHorizontal: pad }]}
         showsVerticalScrollIndicator={false}
       >
-        <Animated.View style={{ opacity: fade, transform: [{ translateY: fadeY }] }}>
+        <Animated.View
+          style={[
+            styles.contentWrap,
+            isDesktop && styles.contentWrapDesktop,
+            { opacity: fade, transform: [{ translateY: fadeY }] },
+          ]}
+        >
           <Text style={styles.sectionLabel}>CHOOSE AN ACTION</Text>
 
-          {/* On tablets: 2-col grid, on phones: single column */}
-          {isTablet ? (
-            <View style={styles.grid}>
-              {cards.map((c, i) => (
-                <ActionCard
-                  key={c.key}
-                  title={c.title}
-                  subtitle={c.subtitle}
-                  icon={c.icon}
-                  gradient={c.gradient}
-                  onPress={() => navigation.navigate(c.screen)}
-                  style={[styles.gridCard, i === 2 && styles.gridCardFull]}
-                />
-              ))}
-            </View>
-          ) : (
-            <View style={styles.stack}>
-              {cards.map(c => (
-                <ActionCard
-                  key={c.key}
-                  title={c.title}
-                  subtitle={c.subtitle}
-                  icon={c.icon}
-                  gradient={c.gradient}
-                  onPress={() => navigation.navigate(c.screen)}
-                  style={styles.stackCard}
-                />
-              ))}
-            </View>
-          )}
+          {/* Phone: single column | Tablet: 2-col wrap | Desktop: 3-col equal */}
+          <View style={[
+            styles.cardGrid,
+            isTablet && styles.cardGridTablet,
+            isDesktop && styles.cardGridDesktop,
+          ]}>
+            {cards.map(c => (
+              <ActionCard
+                key={c.key}
+                title={c.title}
+                subtitle={c.subtitle}
+                icon={c.icon}
+                gradient={c.gradient}
+                onPress={() => navigation.navigate(c.screen)}
+                style={[
+                  isTablet && !isDesktop && styles.cardTabletItem,
+                  isDesktop && styles.cardDesktopItem,
+                ]}
+              />
+            ))}
+          </View>
 
           {/* Footer info card */}
           <View style={styles.infoCard}>
@@ -177,126 +174,94 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg1 },
 
   /* Hero */
-  hero: { overflow: 'hidden', paddingBottom: rs(28) },
-
+  hero: { overflow: 'hidden', paddingBottom: rs(36) },
   orb: { position: 'absolute', borderRadius: radius.full },
-  orb1: { width: rs(300), height: rs(300), backgroundColor: 'rgba(255,255,255,0.06)', top: -rs(100), right: -rs(80) },
-  orb2: { width: rs(180), height: rs(180), backgroundColor: 'rgba(255,255,255,0.04)', bottom: -rs(60), left: -rs(50) },
-  orb3: { width: rs(120), height: rs(120), backgroundColor: 'rgba(255,255,255,0.03)', top: rs(60), left: rs(200) },
+  orb1: { width: rs(320), height: rs(320), backgroundColor: 'rgba(255,255,255,0.07)', top: -rs(100), right: -rs(80) },
+  orb2: { width: rs(200), height: rs(200), backgroundColor: 'rgba(255,255,255,0.05)', bottom: -rs(60), left: -rs(50) },
+  orb3: { width: rs(140), height: rs(140), backgroundColor: 'rgba(255,255,255,0.04)', top: rs(60), right: rs(200) },
 
-  heroInner: { paddingTop: rs(20), paddingBottom: rs(8) },
+  heroInner: { paddingTop: rs(24), paddingBottom: rs(8) },
 
   appBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
+    flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start',
     backgroundColor: 'rgba(255,255,255,0.15)',
     borderRadius: radius.full,
-    paddingHorizontal: rs(14),
-    paddingVertical: rs(7),
-    marginBottom: rs(20),
-    gap: rs(8),
+    paddingHorizontal: rs(14), paddingVertical: rs(7),
+    marginBottom: rs(20), gap: rs(8),
   },
   appBadgeIcon: { fontSize: rs(16) },
   appBadgeLabel: {
-    fontFamily: fonts.bodySemi,
-    fontSize: fontSize.sm,
-    color: colors.white,
-    letterSpacing: 0.5,
+    fontFamily: fonts.bodySemi, fontSize: fontSize.sm,
+    color: colors.white, letterSpacing: 0.5,
   },
 
   heroTitle: {
-    fontFamily: fonts.heading,
-    fontSize: fontSize.hero,
-    color: colors.white,
-    lineHeight: rs(46),
-    letterSpacing: -1,
-    marginBottom: rs(14),
+    fontFamily: fonts.heading, fontSize: fontSize.hero,
+    color: colors.white, lineHeight: rs(46),
+    letterSpacing: -1, marginBottom: rs(14),
   },
+  heroTitleLg: { fontSize: rs(48), lineHeight: rs(56) },
   heroSub: {
-    fontFamily: fonts.body,
-    fontSize: fontSize.base,
-    color: 'rgba(255,255,255,0.78)',
-    lineHeight: rs(22),
+    fontFamily: fonts.body, fontSize: fontSize.base,
+    color: 'rgba(255,255,255,0.82)', lineHeight: rs(24),
     marginBottom: rs(20),
   },
 
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: rs(8) },
   chip: {
-    backgroundColor: 'rgba(255,255,255,0.14)',
-    borderRadius: radius.full,
-    paddingHorizontal: rs(12),
-    paddingVertical: rs(5),
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.20)',
+    backgroundColor: 'rgba(255,255,255,0.14)', borderRadius: radius.full,
+    paddingHorizontal: rs(12), paddingVertical: rs(5),
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)',
   },
   chipText: {
-    fontFamily: fonts.bodySemi,
-    fontSize: fontSize.xs,
-    color: 'rgba(255,255,255,0.90)',
-    letterSpacing: 0.3,
+    fontFamily: fonts.bodySemi, fontSize: fontSize.xs,
+    color: 'rgba(255,255,255,0.92)', letterSpacing: 0.3,
   },
 
-  /* Scroll / cards */
-  scroll: { paddingTop: rs(28), paddingBottom: rs(48) },
+  /* Content */
+  scroll: { paddingTop: rs(32), paddingBottom: rs(52) },
+  contentWrap: {},
+  contentWrapDesktop: { maxWidth: 1100, alignSelf: 'center', width: '100%' },
+
   sectionLabel: {
-    fontFamily: fonts.bodySemi,
-    fontSize: fontSize.xs,
-    color: colors.textMuted,
-    letterSpacing: 1.8,
-    marginBottom: rs(16),
-    textTransform: 'uppercase',
+    fontFamily: fonts.bodySemi, fontSize: fontSize.xs,
+    color: colors.textMuted, letterSpacing: 1.8,
+    marginBottom: rs(16), textTransform: 'uppercase',
   },
 
-  /* Phone column */
-  stack: { gap: rs(14) },
-  stackCard: {},
+  /* Card grid */
+  cardGrid: { gap: rs(14) },
+  cardGridTablet: { flexDirection: 'row', flexWrap: 'wrap' },
+  cardGridDesktop: { flexDirection: 'row', flexWrap: 'nowrap' },
 
-  /* Tablet grid */
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: rs(14) },
-  gridCard: { width: '47%' },
-  gridCardFull: { width: '100%' },
+  cardTabletItem: { width: '47.5%' },
+  cardDesktopItem: { flex: 1 },
 
   /* Info card */
   infoCard: {
-    marginTop: rs(20),
-    borderRadius: radius.xl,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.primaryBorder,
-    ...shadows.sm,
+    marginTop: rs(24), borderRadius: radius.xl,
+    overflow: 'hidden', borderWidth: 1,
+    borderColor: colors.primaryBorder, ...shadows.sm,
   },
   infoGradient: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: rs(18),
-    gap: rs(14),
+    flexDirection: 'row', alignItems: 'flex-start',
+    padding: rs(20), gap: rs(14),
   },
   infoIcon: { fontSize: rs(22), marginTop: rs(2) },
   infoText: { flex: 1 },
   infoTitle: {
-    fontFamily: fonts.bodySemi,
-    fontSize: fontSize.base,
-    color: colors.text,
-    marginBottom: rs(4),
+    fontFamily: fonts.bodySemi, fontSize: fontSize.base,
+    color: colors.text, marginBottom: rs(4),
   },
   infoSub: {
-    fontFamily: fonts.body,
-    fontSize: fontSize.sm,
-    color: colors.textSub,
-    lineHeight: rs(20),
+    fontFamily: fonts.body, fontSize: fontSize.sm,
+    color: colors.textSub, lineHeight: rs(20),
   },
-  infoMono: {
-    fontFamily: fonts.mono,
-    color: colors.primary,
-  },
+  infoMono: { fontFamily: fonts.mono, color: colors.primary },
 
   footer: {
-    fontFamily: fonts.body,
-    fontSize: fontSize.xs,
-    color: colors.textMuted,
-    textAlign: 'center',
-    marginTop: rs(28),
-    letterSpacing: 0.3,
+    fontFamily: fonts.body, fontSize: fontSize.xs,
+    color: colors.textMuted, textAlign: 'center',
+    marginTop: rs(32), letterSpacing: 0.3,
   },
 });

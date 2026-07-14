@@ -116,37 +116,39 @@ export default function EncryptScreen() {
 
   return (
     <View style={styles.root}>
+      {/* ── Header – full width, above scroll ── */}
+      <LinearGradient
+        colors={gradients.encrypt}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <View style={styles.headerOrb} />
+        <SafeAreaView edges={['top']} style={{ width: '100%', alignItems: 'center' }}>
+          <View style={styles.headerIconWrap}><Text style={styles.headerEmoji}>🔒</Text></View>
+          <Text style={styles.headerTitle}>Encrypt File</Text>
+          <Text style={styles.headerSub}>
+            AES-128-CBC with HMAC-SHA256{'\n'}authentication & tamper detection
+          </Text>
+
+          {/* Step indicators */}
+          <View style={styles.steps}>
+            {['Select File', 'Choose Method', 'Encrypt'].map((s, i) => (
+              <View key={s} style={styles.stepWrap}>
+                <View style={styles.stepDot}><Text style={styles.stepNum}>{i + 1}</Text></View>
+                <Text style={styles.stepLabel}>{s}</Text>
+                {i < 2 && <View style={styles.stepLine} />}
+              </View>
+            ))}
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+
+      {/* ── Scrollable body ── */}
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scroll, { paddingHorizontal: pad }]}
         keyboardShouldPersistTaps="handled"
       >
-        {/* ── Header ── */}
-        <LinearGradient
-          colors={gradients.encrypt}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={styles.header}
-        >
-          <View style={styles.headerOrb} />
-          <SafeAreaView edges={['top']} style={{ width: '100%', alignItems: 'center' }}>
-            <View style={styles.headerIconWrap}><Text style={styles.headerEmoji}>🔒</Text></View>
-            <Text style={styles.headerTitle}>Encrypt File</Text>
-            <Text style={styles.headerSub}>
-              AES-128-CBC with HMAC-SHA256{'\n'}authentication & tamper detection
-            </Text>
-
-            {/* Step indicators */}
-            <View style={styles.steps}>
-              {['Select File', 'Choose Method', 'Encrypt'].map((s, i) => (
-                <View key={s} style={styles.stepWrap}>
-                  <View style={styles.stepDot}><Text style={styles.stepNum}>{i + 1}</Text></View>
-                  <Text style={styles.stepLabel}>{s}</Text>
-                  {i < 2 && <View style={styles.stepLine} />}
-                </View>
-              ))}
-            </View>
-          </SafeAreaView>
-        </LinearGradient>
 
         {/* ── Body ── */}
         <View style={[styles.body, isTablet && styles.bodyTablet]}>
@@ -247,15 +249,12 @@ export default function EncryptScreen() {
 
 const styles = StyleSheet.create({
   root:   { flex: 1, backgroundColor: colors.bg1 },
-  scroll: { paddingBottom: rs(48) },
+  scroll: { paddingBottom: rs(48), paddingTop: rs(24) },
 
   header: {
     alignItems: 'center',
     paddingBottom: rs(32),
     overflow: 'hidden',
-    marginHorizontal: -rs(20),
-    marginTop: -rs(20),
-    paddingTop: rs(20),
   },
   headerOrb: {
     position: 'absolute',
@@ -291,7 +290,7 @@ const styles = StyleSheet.create({
   stepLabel: { fontFamily: fonts.body, fontSize: rs(10), color: 'rgba(255,255,255,0.75)' },
   stepLine: { width: rs(20), height: 1, backgroundColor: 'rgba(255,255,255,0.30)' },
 
-  body: { paddingTop: rs(24) },
+  body: { paddingTop: rs(4) },
   bodyTablet: { maxWidth: 640, alignSelf: 'center', width: '100%' },
 
   toggle: {

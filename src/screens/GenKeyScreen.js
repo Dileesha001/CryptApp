@@ -67,18 +67,13 @@ export default function GenKeyScreen() {
 
   return (
     <View style={styles.root}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scroll, { paddingHorizontal: pad }]}
-        keyboardShouldPersistTaps="handled"
+      {/* ── Header gradient – full width, above scroll ── */}
+      <LinearGradient
+        colors={gradients.genKey}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
       >
-        {/* ── Header gradient ── */}
-        <LinearGradient
-          colors={gradients.genKey}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.header}
-        >
           <View style={styles.headerOrb} />
           <SafeAreaView edges={['top']} style={{ width: '100%', alignItems: 'center' }}>
             <View style={styles.headerIconWrap}>
@@ -89,9 +84,14 @@ export default function GenKeyScreen() {
               Creates a 256-bit cryptographically{'\n'}random Fernet encryption key.
             </Text>
           </SafeAreaView>
-        </LinearGradient>
+      </LinearGradient>
 
-        {/* ── Body ── */}
+      {/* ── Scrollable body ── */}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.scroll, { paddingHorizontal: pad }]}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={[styles.body, isTablet && styles.bodyTablet]}>
 
           {/* Key preview / placeholder */}
@@ -212,16 +212,13 @@ export default function GenKeyScreen() {
 
 const styles = StyleSheet.create({
   root:   { flex: 1, backgroundColor: colors.bg1 },
-  scroll: { paddingBottom: rs(48) },
+  scroll: { paddingBottom: rs(48), paddingTop: rs(24) },
 
-  /* Header */
+  /* Header – full width, no horizontal bleed needed */
   header: {
     alignItems: 'center',
     paddingBottom: rs(36),
     overflow: 'hidden',
-    marginHorizontal: -rs(20),   // bleed to edges before hPad
-    marginTop: -rs(20),
-    paddingTop: rs(20),
   },
   headerOrb: {
     position: 'absolute',
@@ -259,7 +256,7 @@ const styles = StyleSheet.create({
   },
 
   /* Body */
-  body: { paddingTop: rs(24) },
+  body: { paddingTop: rs(4) },
   bodyTablet: { maxWidth: 640, alignSelf: 'center', width: '100%' },
 
   /* Key card */
