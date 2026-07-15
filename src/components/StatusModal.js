@@ -1,4 +1,4 @@
-// StatusModal.js – Premium animated bottom-sheet modal
+// StatusModal.js – Premium animated modal: bottom-sheet on mobile, centered dialog on desktop
 import React, { useEffect, useRef } from 'react';
 import {
   Animated,
@@ -14,7 +14,7 @@ import { colors, fonts, fontSize, gradients, radius, shadows, spacing, rs } from
 
 const CONFIGS = {
   success: {
-    icon: '🔐',
+    icon: '✅',
     label: 'Success',
     color: colors.emerald,
     dimColor: colors.emeraldDim,
@@ -51,41 +51,73 @@ export default function StatusModal({
   const { width, height } = useWindowDimensions();
   const isWide = width >= 768;
 
-  const slide = useRef(new Animated.Value(400)).current;
+  // On mobile: slide up from bottom. On desktop: fade + scale in from center.
+  const slide = useRef(new Animated.Value(600)).current;
   const fade  = useRef(new Animated.Value(0)).current;
+  const scale = useRef(new Animated.Value(isWide ? 0.92 : 1)).current;
 
   useEffect(() => {
     if (visible) {
       Animated.parallel([
-        Animated.spring(slide, { toValue: 0, tension: 65, friction: 11, useNativeDriver: true }),
-        Animated.timing(fade, { toValue: 1, duration: 200, useNativeDriver: true }),
+        Animated.spring(slide, { toValue: 0,    tension: 65, friction: 11, useNativeDriver: true }),
+        Animated.timing(fade,  { toValue: 1,    duration: 220, useNativeDriver: true }),
+        Animated.spring(scale, { toValue: 1,    tension: 80, friction: 12, useNativeDriver: true }),
       ]).start();
     } else {
       Animated.parallel([
-        Animated.timing(slide, { toValue: 400, duration: 260, useNativeDriver: true }),
-        Animated.timing(fade,  { toValue: 0,   duration: 200, useNativeDriver: true }),
+        Animated.timing(slide, { toValue: 600, duration: 280, useNativeDriver: true }),
+        Animated.timing(fade,  { toValue: 0,   duration: 220, useNativeDriver: true }),
+        Animated.spring(scale, { toValue: isWide ? 0.92 : 1, tension: 80, friction: 12, useNativeDriver: true }),
       ]).start();
     }
   }, [visible]);
 
   const cfg = CONFIGS[type] || CONFIGS.success;
 
-  const sheetWidth = isWide ? Math.min(width * 0.5, 520) : width;
-  const sheetStyle = isWide
-    ? { width: sheetWidth, alignSelf: 'center', borderRadius: radius.xxl, marginBottom: spacing.xl }
+  // Desktop: centered dialog; mobile: bottom-sheet
+  const sheetWidth  = isWide ? Math.min(width * 0.5, 520) : width;
+  const sheetRadius = isWide
+    ? { borderRadius: radius.xxl }
     : { borderTopLeftRadius: radius.xxl, borderTopRightRadius: radius.xxl };
 
   return (
-    <Modal transparent visible={visible} animationType="none" onRequestClose={type !== 'loading' ? onClose : undefined}>
-      <Animated.View style={[styles.overlay, { opacity: fade }]}>
+    <Modal
+      transparent
+      visible={visible}
+      animationType="none"
+      onRequestClose={type !== 'loading' ? onClose : undefined}
+    >
+      <Animated.View style={[
+        styles.overlay,
+        isWide ? styles.overlayCenter : styles.overlayBottom,
+        { opacity: fade },
+      ]}>
+        {/* Backdrop dismiss */}
         {type !== 'loading' && (
           <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         )}
 
-        <Animated.View style={[styles.sheetWrap, { transform: [{ translateY: slide }] }]}>
-          <LinearGradient colors={cfg.bg} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={[styles.sheet, sheetStyle, { borderWidth: 1, borderColor: cfg.borderColor }]}>
-
-            {/* Pill handle */}
+        <Animated.View style={[
+          styles.sheetWrap,
+          isWide && { width: sheetWidth, alignSelf: 'center', zIndex: 2 },
+          {
+            transform: [
+              { translateY: isWide ? 0 : slide },
+              { scale: isWide ? scale : 1 },
+            ],
+          },
+        ]}>
+          <LinearGradient
+            colors={cfg.bg}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={[
+              styles.sheet,
+              sheetRadius,
+              { borderWidth: 1, borderColor: cfg.borderColor },
+            ]}
+          >
+            {/* Pill handle – mobile only */}
             {!isWide && <View style={styles.handle} />}
 
             {/* Icon circle */}
@@ -106,7 +138,10 @@ export default function StatusModal({
               {onAction && actionLabel && (
                 <Pressable
                   onPress={onAction}
-                  style={({ pressed }) => [styles.btn, styles.btnPrimary, { backgroundColor: cfg.color, opacity: pressed ? 0.85 : 1 }]}
+                  style={({ pressed }) => [
+                    styles.btn, styles.btnPrimary,
+                    { backgroundColor: cfg.color, opacity: pressed ? 0.85 : 1 },
+                  ]}
                 >
                   <Text style={styles.btnPrimaryText}>{actionLabel}</Text>
                 </Pressable>
@@ -133,8 +168,16 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.72)',
+  },
+  overlayBottom: {
     justifyContent: 'flex-end',
   },
+  overlayCenter: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: rs(24),
+  },
+
   sheetWrap: {
     width: '100%',
   },

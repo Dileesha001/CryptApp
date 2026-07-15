@@ -75,22 +75,10 @@ export default function App() {
             animation: 'slide_from_right',
           }}
         >
-          <Stack.Screen name="Home" component={HomeScreen} />
-          <Stack.Screen
-            name="GenKey"
-            component={GenKeyScreen}
-            options={{ headerShown: true, headerTransparent: true, headerTitle: '', headerTintColor: colors.white }}
-          />
-          <Stack.Screen
-            name="Encrypt"
-            component={EncryptScreen}
-            options={{ headerShown: true, headerTransparent: true, headerTitle: '', headerTintColor: colors.white }}
-          />
-          <Stack.Screen
-            name="Decrypt"
-            component={DecryptScreen}
-            options={{ headerShown: true, headerTransparent: true, headerTitle: '', headerTintColor: colors.white }}
-          />
+          <Stack.Screen name="Home"    component={HomeScreen} />
+          <Stack.Screen name="GenKey"  component={GenKeyScreen} />
+          <Stack.Screen name="Encrypt" component={EncryptScreen} />
+          <Stack.Screen name="Decrypt" component={DecryptScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

@@ -3,7 +3,6 @@ import React, { useEffect, useRef } from 'react';
 import {
   Animated,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -63,7 +62,6 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
       {/* ── Hero – always full width ── */}
       <LinearGradient
@@ -174,7 +172,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg1 },
 
   /* Hero */
-  hero: { overflow: 'hidden', paddingBottom: rs(36) },
+  hero: { overflow: 'hidden', paddingBottom: rs(36), maxHeight: rs(340) },
   orb: { position: 'absolute', borderRadius: radius.full },
   orb1: { width: rs(320), height: rs(320), backgroundColor: 'rgba(255,255,255,0.07)', top: -rs(100), right: -rs(80) },
   orb2: { width: rs(200), height: rs(200), backgroundColor: 'rgba(255,255,255,0.05)', bottom: -rs(60), left: -rs(50) },

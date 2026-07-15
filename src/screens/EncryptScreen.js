@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,15 +12,15 @@ import {
   View,
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import {
   encryptWithKey, encryptWithPassword,
   base64ToBytes, bytesToBase64,
 } from '../crypto/fernet';
-import FilePicker   from '../components/FilePicker';
+import { readFileAsBytes, saveAndShareBytes } from '../utils/webFileIO';
+import FilePicker    from '../components/FilePicker';
 import PasswordInput from '../components/PasswordInput';
 import StatusModal   from '../components/StatusModal';
 import {
@@ -34,6 +35,8 @@ export default function EncryptScreen() {
   const { width } = useWindowDimensions();
   const isTablet  = width >= 768;
   const pad       = hPad();
+  const insets    = useSafeAreaInsets();
+  const navigation = useNavigation();
 
   const [mode,      setMode]      = useState(MODE_KEY);
   const [inputFile, setInputFile] = useState(null);
@@ -43,14 +46,15 @@ export default function EncryptScreen() {
   const [outName,   setOutName]   = useState('');
   const [loading,   setLoading]   = useState(false);
   const [modal,     setModal]     = useState({ visible: false });
-  const [outputUri, setOutputUri] = useState(null);
+  const [outputBytes, setOutputBytes] = useState(null);
+  const [outputName,  setOutputName]  = useState('');
 
   const pickInput = async () => {
     try {
       const res = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true });
       if (!res.canceled && res.assets?.[0]) {
         const a = res.assets[0];
-        setInputFile({ uri: a.uri, name: a.name });
+        setInputFile(a);
         if (!outName) setOutName(a.name + '.enc');
       }
     } catch (e) { console.warn(e); }
@@ -60,22 +64,27 @@ export default function EncryptScreen() {
     try {
       const res = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true });
       if (!res.canceled && res.assets?.[0]) {
-        const a = res.assets[0];
-        setKeyFile({ uri: a.uri, name: a.name });
+        setKeyFile(res.assets[0]);
       }
     } catch (e) { console.warn(e); }
   };
 
   const handleEncrypt = async () => {
-    if (!inputFile) return setModal({ visible: true, type: 'error', title: 'No input file', message: 'Please select the file you want to encrypt.' });
-    if (mode === MODE_KEY && !keyFile) return setModal({ visible: true, type: 'error', title: 'No key file', message: 'Please select your .key file.' });
+    if (!inputFile)
+      return setModal({ visible: true, type: 'error', title: 'No input file', message: 'Please select the file you want to encrypt.' });
+    if (mode === MODE_KEY && !keyFile)
+      return setModal({ visible: true, type: 'error', title: 'No key file', message: 'Please select your .key file.' });
     if (mode === MODE_PASS) {
-      if (!password) return setModal({ visible: true, type: 'error', title: 'No password', message: 'Please enter an encryption password.' });
-      if (password !== confirm) return setModal({ visible: true, type: 'error', title: 'Passwords differ', message: 'The two passwords you entered do not match.' });
-      if (password.length < 8) return setModal({ visible: true, type: 'error', title: 'Weak password', message: 'Please use at least 8 characters for your password.' });
+      if (!password)
+        return setModal({ visible: true, type: 'error', title: 'No password', message: 'Please enter an encryption password.' });
+      if (password !== confirm)
+        return setModal({ visible: true, type: 'error', title: 'Passwords differ', message: 'The two passwords you entered do not match.' });
+      if (password.length < 8)
+        return setModal({ visible: true, type: 'error', title: 'Weak password', message: 'Please use at least 8 characters for your password.' });
     }
 
     setLoading(true);
+    setOutputBytes(null);
     setModal({
       visible: true, type: 'loading',
       title: 'Encrypting…',
@@ -85,22 +94,40 @@ export default function EncryptScreen() {
     });
 
     try {
-      const b64 = await FileSystem.readAsStringAsync(inputFile.uri, { encoding: FileSystem.EncodingType.Base64 });
-      const plain = base64ToBytes(b64);
+      // ── Read input file (web-safe) ──────────────────────────────────────
+      const plain = await readFileAsBytes(inputFile);
 
+      // ── Encrypt ─────────────────────────────────────────────────────────
       let cipher;
       if (mode === MODE_KEY) {
-        const keyStr = (await FileSystem.readAsStringAsync(keyFile.uri, { encoding: FileSystem.EncodingType.UTF8 })).trim();
+        let keyStr;
+        if (Platform.OS === 'web') {
+          // Read key file as text via FileReader
+          const keyBytes = await readFileAsBytes(keyFile);
+          keyStr = new TextDecoder().decode(keyBytes).trim();
+        } else {
+          const { default: FileSystem } = await import('expo-file-system');
+          keyStr = (await FileSystem.readAsStringAsync(keyFile.uri, {
+            encoding: FileSystem.EncodingType.UTF8,
+          })).trim();
+        }
         cipher = await encryptWithKey(plain, keyStr);
       } else {
         cipher = await encryptWithPassword(plain, password);
       }
 
+      // ── Save / download ──────────────────────────────────────────────────
       const name = outName.trim() || inputFile.name + '.enc';
-      const path = FileSystem.cacheDirectory + name;
-      await FileSystem.writeAsStringAsync(path, bytesToBase64(cipher), { encoding: FileSystem.EncodingType.Base64 });
-      setOutputUri(path);
-      setModal({ visible: true, type: 'success', title: 'Encrypted!', message: `"${inputFile.name}" was encrypted successfully.\n\nOutput: ${name}` });
+      setOutputBytes(cipher);
+      setOutputName(name);
+
+      await saveAndShareBytes(cipher, name, 'application/octet-stream', 'Save encrypted file');
+
+      setModal({
+        visible: true, type: 'success',
+        title: 'Encrypted!',
+        message: `"${inputFile.name}" encrypted successfully.\n\nOutput: ${name}`,
+      });
     } catch (e) {
       setModal({ visible: true, type: 'error', title: 'Encryption Failed', message: e.message || 'An unexpected error occurred.' });
     } finally {
@@ -109,9 +136,10 @@ export default function EncryptScreen() {
   };
 
   const share = async () => {
-    if (!outputUri) return;
-    try { await Sharing.shareAsync(outputUri, { mimeType: 'application/octet-stream', dialogTitle: 'Save encrypted file' }); }
-    catch (e) { console.warn(e); }
+    if (!outputBytes) return;
+    try {
+      await saveAndShareBytes(outputBytes, outputName, 'application/octet-stream', 'Save encrypted file');
+    } catch (e) { console.warn(e); }
   };
 
   return (
@@ -120,11 +148,23 @@ export default function EncryptScreen() {
       <LinearGradient
         colors={gradients.encrypt}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={styles.header}
+        style={[styles.header, { paddingTop: insets.top }]}
       >
         <View style={styles.headerOrb} />
-        <SafeAreaView edges={['top']} style={{ width: '100%', alignItems: 'center' }}>
-          <View style={styles.headerIconWrap}><Text style={styles.headerEmoji}>🔒</Text></View>
+
+        {/* Back button */}
+        <Pressable
+          onPress={() => navigation.goBack()}
+          style={[styles.backBtn, { top: insets.top + rs(10) }]}
+          hitSlop={12}
+        >
+          <Text style={styles.backBtnText}>‹</Text>
+        </Pressable>
+
+        <View style={{ width: '100%', alignItems: 'center', paddingBottom: rs(32) }}>
+          <View style={styles.headerIconWrap}>
+            <Text style={styles.headerEmoji}>🔒</Text>
+          </View>
           <Text style={styles.headerTitle}>Encrypt File</Text>
           <Text style={styles.headerSub}>
             AES-128-CBC with HMAC-SHA256{'\n'}authentication & tamper detection
@@ -140,7 +180,7 @@ export default function EncryptScreen() {
               </View>
             ))}
           </View>
-        </SafeAreaView>
+        </View>
       </LinearGradient>
 
       {/* ── Scrollable body ── */}
@@ -149,8 +189,6 @@ export default function EncryptScreen() {
         contentContainerStyle={[styles.scroll, { paddingHorizontal: pad }]}
         keyboardShouldPersistTaps="handled"
       >
-
-        {/* ── Body ── */}
         <View style={[styles.body, isTablet && styles.bodyTablet]}>
 
           {/* Mode toggle */}
@@ -170,10 +208,24 @@ export default function EncryptScreen() {
           </View>
 
           {/* Inputs */}
-          <FilePicker label="Input File" placeholder="Select file to encrypt" value={inputFile?.name} onPress={pickInput} icon="📄" accent={colors.cyan} />
+          <FilePicker
+            label="Input File"
+            placeholder="Select file to encrypt"
+            value={inputFile?.name}
+            onPress={pickInput}
+            icon="📄"
+            accent={colors.cyan}
+          />
 
           {mode === MODE_KEY ? (
-            <FilePicker label="Key File (.key)" placeholder="Select your key file" value={keyFile?.name} onPress={pickKey} icon="🗝️" accent={colors.cyan} />
+            <FilePicker
+              label="Key File (.key)"
+              placeholder="Select your key file"
+              value={keyFile?.name}
+              onPress={pickKey}
+              icon="🗝️"
+              accent={colors.cyan}
+            />
           ) : (
             <>
               <PasswordInput label="Password" value={password} onChangeText={setPassword} placeholder="Min 8 characters" accent={colors.cyan} />
@@ -197,13 +249,17 @@ export default function EncryptScreen() {
           </View>
 
           {/* Encrypt button */}
-          <Pressable onPress={handleEncrypt} disabled={loading} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}>
+          <Pressable
+            onPress={handleEncrypt}
+            disabled={loading}
+            style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
+          >
             <LinearGradient
               colors={gradients.btnCyan}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
               style={[styles.btn, shadows.cyan]}
             >
-              {loading && !outputUri ? (
+              {loading ? (
                 <ActivityIndicator color={colors.white} />
               ) : (
                 <Text style={styles.btnText}>🔒  Encrypt File</Text>
@@ -211,10 +267,15 @@ export default function EncryptScreen() {
             </LinearGradient>
           </Pressable>
 
-          {/* Share output */}
-          {outputUri && !loading && (
-            <Pressable onPress={share} style={[styles.outlineBtn, { borderColor: colors.cyan }]}>
-              <Text style={[styles.outlineBtnText, { color: colors.cyan }]}>📤  Save / Share Encrypted File</Text>
+          {/* Save / re-download output */}
+          {outputBytes && !loading && (
+            <Pressable
+              onPress={share}
+              style={[styles.outlineBtn, { borderColor: colors.cyan }]}
+            >
+              <Text style={[styles.outlineBtnText, { color: colors.cyan }]}>
+                {Platform.OS === 'web' ? '⬇️  Download Encrypted File' : '📤  Save / Share Encrypted File'}
+              </Text>
             </Pressable>
           )}
 
@@ -240,8 +301,8 @@ export default function EncryptScreen() {
         title={modal.title}
         message={modal.message}
         onClose={() => setModal({ visible: false })}
-        onAction={modal.type === 'success' && outputUri ? share : null}
-        actionLabel="📤 Save Encrypted File"
+        onAction={modal.type === 'success' && outputBytes ? share : null}
+        actionLabel={Platform.OS === 'web' ? '⬇️ Download Encrypted File' : '📤 Save Encrypted File'}
       />
     </View>
   );
@@ -251,9 +312,9 @@ const styles = StyleSheet.create({
   root:   { flex: 1, backgroundColor: colors.bg1 },
   scroll: { paddingBottom: rs(48), paddingTop: rs(24) },
 
+  /* Header */
   header: {
     alignItems: 'center',
-    paddingBottom: rs(32),
     overflow: 'hidden',
   },
   headerOrb: {
@@ -262,6 +323,26 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.07)',
     top: -rs(80), right: -rs(60),
   },
+
+  /* Custom back button */
+  backBtn: {
+    position: 'absolute',
+    left: rs(16),
+    width: rs(36),
+    height: rs(36),
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  backBtnText: {
+    color: colors.white,
+    fontSize: rs(26),
+    lineHeight: rs(30),
+    marginTop: -rs(2),
+  },
+
   headerIconWrap: {
     width: rs(74), height: rs(74), borderRadius: radius.xl,
     backgroundColor: 'rgba(255,255,255,0.20)',
@@ -322,6 +403,7 @@ const styles = StyleSheet.create({
   fieldInput: {
     flex: 1, fontFamily: fonts.body, fontSize: fontSize.base,
     color: colors.text, paddingVertical: rs(14),
+    ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}),
   },
 
   btn: {

@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,14 +12,13 @@ import {
   View,
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import {
   decryptWithKey, decryptWithPassword,
-  base64ToBytes, bytesToBase64,
 } from '../crypto/fernet';
+import { readFileAsBytes, saveAndShareBytes } from '../utils/webFileIO';
 import FilePicker    from '../components/FilePicker';
 import PasswordInput from '../components/PasswordInput';
 import StatusModal   from '../components/StatusModal';
@@ -34,6 +34,8 @@ export default function DecryptScreen() {
   const { width } = useWindowDimensions();
   const isTablet  = width >= 768;
   const pad       = hPad();
+  const insets    = useSafeAreaInsets();
+  const navigation = useNavigation();
 
   const [mode,      setMode]      = useState(MODE_KEY);
   const [inputFile, setInputFile] = useState(null);
@@ -42,14 +44,15 @@ export default function DecryptScreen() {
   const [outName,   setOutName]   = useState('');
   const [loading,   setLoading]   = useState(false);
   const [modal,     setModal]     = useState({ visible: false });
-  const [outputUri, setOutputUri] = useState(null);
+  const [outputBytes, setOutputBytes] = useState(null);
+  const [outputName,  setOutputName]  = useState('');
 
   const pickInput = async () => {
     try {
       const res = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true });
       if (!res.canceled && res.assets?.[0]) {
         const a = res.assets[0];
-        setInputFile({ uri: a.uri, name: a.name });
+        setInputFile(a);
         if (!outName) {
           setOutName(a.name.endsWith('.enc') ? a.name.slice(0, -4) : 'decrypted_' + a.name);
         }
@@ -61,18 +64,21 @@ export default function DecryptScreen() {
     try {
       const res = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true });
       if (!res.canceled && res.assets?.[0]) {
-        const a = res.assets[0];
-        setKeyFile({ uri: a.uri, name: a.name });
+        setKeyFile(res.assets[0]);
       }
     } catch (e) { console.warn(e); }
   };
 
   const handleDecrypt = async () => {
-    if (!inputFile) return setModal({ visible: true, type: 'error', title: 'No file selected', message: 'Please select the encrypted file to decrypt.' });
-    if (mode === MODE_KEY && !keyFile) return setModal({ visible: true, type: 'error', title: 'No key file', message: 'Please select your .key file.' });
-    if (mode === MODE_PASS && !password) return setModal({ visible: true, type: 'error', title: 'No password', message: 'Please enter the decryption password.' });
+    if (!inputFile)
+      return setModal({ visible: true, type: 'error', title: 'No file selected', message: 'Please select the encrypted file to decrypt.' });
+    if (mode === MODE_KEY && !keyFile)
+      return setModal({ visible: true, type: 'error', title: 'No key file', message: 'Please select your .key file.' });
+    if (mode === MODE_PASS && !password)
+      return setModal({ visible: true, type: 'error', title: 'No password', message: 'Please enter the decryption password.' });
 
     setLoading(true);
+    setOutputBytes(null);
     setModal({
       visible: true, type: 'loading',
       title: 'Decrypting…',
@@ -82,26 +88,44 @@ export default function DecryptScreen() {
     });
 
     try {
-      const b64 = await FileSystem.readAsStringAsync(inputFile.uri, { encoding: FileSystem.EncodingType.Base64 });
-      const cipher = base64ToBytes(b64);
+      // ── Read encrypted file (web-safe) ──────────────────────────────────
+      const cipher = await readFileAsBytes(inputFile);
 
+      // ── Decrypt ──────────────────────────────────────────────────────────
       let plain;
       if (mode === MODE_KEY) {
-        const keyStr = (await FileSystem.readAsStringAsync(keyFile.uri, { encoding: FileSystem.EncodingType.UTF8 })).trim();
+        let keyStr;
+        if (Platform.OS === 'web') {
+          const keyBytes = await readFileAsBytes(keyFile);
+          keyStr = new TextDecoder().decode(keyBytes).trim();
+        } else {
+          const { default: FileSystem } = await import('expo-file-system');
+          keyStr = (await FileSystem.readAsStringAsync(keyFile.uri, {
+            encoding: FileSystem.EncodingType.UTF8,
+          })).trim();
+        }
         plain = await decryptWithKey(cipher, keyStr);
       } else {
         plain = await decryptWithPassword(cipher, password);
       }
 
+      // ── Save / download ──────────────────────────────────────────────────
       const name = outName.trim() || 'decrypted_' + inputFile.name;
-      const path = FileSystem.cacheDirectory + name;
-      await FileSystem.writeAsStringAsync(path, bytesToBase64(plain), { encoding: FileSystem.EncodingType.Base64 });
-      setOutputUri(path);
-      setModal({ visible: true, type: 'success', title: 'Decrypted!', message: `"${inputFile.name}" was decrypted successfully.\n\nOutput: ${name}` });
+      setOutputBytes(plain);
+      setOutputName(name);
+
+      await saveAndShareBytes(plain, name, 'application/octet-stream', 'Save decrypted file');
+
+      setModal({
+        visible: true, type: 'success',
+        title: 'Decrypted!',
+        message: `"${inputFile.name}" decrypted successfully.\n\nOutput: ${name}`,
+      });
     } catch (e) {
-      const msg = e.message?.toLowerCase().includes('hmac') || e.message?.toLowerCase().includes('verification')
-        ? 'Wrong key or password, or the file has been tampered with. HMAC verification failed.'
-        : (e.message || 'An unexpected error occurred.');
+      const msg =
+        e.message?.toLowerCase().includes('hmac') || e.message?.toLowerCase().includes('verification') || e.message?.toLowerCase().includes('wrong key')
+          ? 'Wrong key or password, or the file has been tampered with. HMAC verification failed.'
+          : (e.message || 'An unexpected error occurred.');
       setModal({ visible: true, type: 'error', title: 'Decryption Failed', message: msg });
     } finally {
       setLoading(false);
@@ -109,9 +133,10 @@ export default function DecryptScreen() {
   };
 
   const share = async () => {
-    if (!outputUri) return;
-    try { await Sharing.shareAsync(outputUri, { dialogTitle: 'Save decrypted file' }); }
-    catch (e) { console.warn(e); }
+    if (!outputBytes) return;
+    try {
+      await saveAndShareBytes(outputBytes, outputName, 'application/octet-stream', 'Save decrypted file');
+    } catch (e) { console.warn(e); }
   };
 
   return (
@@ -120,11 +145,23 @@ export default function DecryptScreen() {
       <LinearGradient
         colors={gradients.decrypt}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={styles.header}
+        style={[styles.header, { paddingTop: insets.top }]}
       >
         <View style={styles.headerOrb} />
-        <SafeAreaView edges={['top']} style={{ width: '100%', alignItems: 'center' }}>
-          <View style={styles.headerIconWrap}><Text style={styles.headerEmoji}>🔓</Text></View>
+
+        {/* Back button */}
+        <Pressable
+          onPress={() => navigation.goBack()}
+          style={[styles.backBtn, { top: insets.top + rs(10) }]}
+          hitSlop={12}
+        >
+          <Text style={styles.backBtnText}>‹</Text>
+        </Pressable>
+
+        <View style={{ width: '100%', alignItems: 'center', paddingBottom: rs(32) }}>
+          <View style={styles.headerIconWrap}>
+            <Text style={styles.headerEmoji}>🔓</Text>
+          </View>
           <Text style={styles.headerTitle}>Decrypt File</Text>
           <Text style={styles.headerSub}>
             Restore an encrypted file using{'\n'}the same key or password used to encrypt it.
@@ -134,7 +171,7 @@ export default function DecryptScreen() {
           <View style={styles.hmacBadge}>
             <Text style={styles.hmacText}>🛡️ HMAC-verified integrity check</Text>
           </View>
-        </SafeAreaView>
+        </View>
       </LinearGradient>
 
       {/* ── Scrollable body ── */}
@@ -143,8 +180,6 @@ export default function DecryptScreen() {
         contentContainerStyle={[styles.scroll, { paddingHorizontal: pad }]}
         keyboardShouldPersistTaps="handled"
       >
-
-        {/* ── Body ── */}
         <View style={[styles.body, isTablet && styles.bodyTablet]}>
 
           {/* Mode toggle */}
@@ -164,12 +199,32 @@ export default function DecryptScreen() {
           </View>
 
           {/* Inputs */}
-          <FilePicker label="Encrypted File" placeholder="Select .enc file to decrypt" value={inputFile?.name} onPress={pickInput} icon="🔒" accent={colors.emerald} />
+          <FilePicker
+            label="Encrypted File"
+            placeholder="Select .enc file to decrypt"
+            value={inputFile?.name}
+            onPress={pickInput}
+            icon="🔒"
+            accent={colors.emerald}
+          />
 
           {mode === MODE_KEY ? (
-            <FilePicker label="Key File (.key)" placeholder="Select your key file" value={keyFile?.name} onPress={pickKey} icon="🗝️" accent={colors.emerald} />
+            <FilePicker
+              label="Key File (.key)"
+              placeholder="Select your key file"
+              value={keyFile?.name}
+              onPress={pickKey}
+              icon="🗝️"
+              accent={colors.emerald}
+            />
           ) : (
-            <PasswordInput label="Password" value={password} onChangeText={setPassword} placeholder="Enter decryption password" accent={colors.emerald} />
+            <PasswordInput
+              label="Password"
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Enter decryption password"
+              accent={colors.emerald}
+            />
           )}
 
           {/* Output name */}
@@ -188,13 +243,17 @@ export default function DecryptScreen() {
           </View>
 
           {/* Decrypt button */}
-          <Pressable onPress={handleDecrypt} disabled={loading} style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}>
+          <Pressable
+            onPress={handleDecrypt}
+            disabled={loading}
+            style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
+          >
             <LinearGradient
               colors={gradients.btnGreen}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
               style={[styles.btn, shadows.green]}
             >
-              {loading && !outputUri ? (
+              {loading ? (
                 <ActivityIndicator color={colors.white} />
               ) : (
                 <Text style={styles.btnText}>🔓  Decrypt File</Text>
@@ -202,9 +261,14 @@ export default function DecryptScreen() {
             </LinearGradient>
           </Pressable>
 
-          {outputUri && !loading && (
-            <Pressable onPress={share} style={[styles.outlineBtn, { borderColor: colors.emerald }]}>
-              <Text style={[styles.outlineBtnText, { color: colors.emerald }]}>📤  Save / Share Decrypted File</Text>
+          {outputBytes && !loading && (
+            <Pressable
+              onPress={share}
+              style={[styles.outlineBtn, { borderColor: colors.emerald }]}
+            >
+              <Text style={[styles.outlineBtnText, { color: colors.emerald }]}>
+                {Platform.OS === 'web' ? '⬇️  Download Decrypted File' : '📤  Save / Share Decrypted File'}
+              </Text>
             </Pressable>
           )}
 
@@ -230,8 +294,8 @@ export default function DecryptScreen() {
         title={modal.title}
         message={modal.message}
         onClose={() => setModal({ visible: false })}
-        onAction={modal.type === 'success' && outputUri ? share : null}
-        actionLabel="📤 Save Decrypted File"
+        onAction={modal.type === 'success' && outputBytes ? share : null}
+        actionLabel={Platform.OS === 'web' ? '⬇️ Download Decrypted File' : '📤 Save Decrypted File'}
       />
     </View>
   );
@@ -241,8 +305,9 @@ const styles = StyleSheet.create({
   root:   { flex: 1, backgroundColor: colors.bg1 },
   scroll: { paddingBottom: rs(48), paddingTop: rs(24) },
 
+  /* Header */
   header: {
-    alignItems: 'center', paddingBottom: rs(32),
+    alignItems: 'center',
     overflow: 'hidden',
   },
   headerOrb: {
@@ -251,6 +316,26 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.07)',
     top: -rs(80), right: -rs(60),
   },
+
+  /* Custom back button */
+  backBtn: {
+    position: 'absolute',
+    left: rs(16),
+    width: rs(36),
+    height: rs(36),
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  backBtnText: {
+    color: colors.white,
+    fontSize: rs(26),
+    lineHeight: rs(30),
+    marginTop: -rs(2),
+  },
+
   headerIconWrap: {
     width: rs(74), height: rs(74), borderRadius: radius.xl,
     backgroundColor: 'rgba(255,255,255,0.20)',
@@ -304,6 +389,7 @@ const styles = StyleSheet.create({
   fieldInput: {
     flex: 1, fontFamily: fonts.body, fontSize: fontSize.base,
     color: colors.text, paddingVertical: rs(14),
+    ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}),
   },
 
   btn: {

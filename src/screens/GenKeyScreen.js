@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,11 +11,11 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { generateKey } from '../crypto/fernet';
+import { saveAndShareText } from '../utils/webFileIO';
 import StatusModal from '../components/StatusModal';
 import {
   colors, fonts, fontSize, gradients, radius,
@@ -25,6 +26,8 @@ export default function GenKeyScreen() {
   const { width } = useWindowDimensions();
   const isTablet  = width >= 768;
   const pad       = hPad();
+  const insets    = useSafeAreaInsets();
+  const navigation = useNavigation();
 
   const [keyStr,   setKeyStr]   = useState(null);
   const [fileName, setFileName] = useState('secret.key');
@@ -46,13 +49,10 @@ export default function GenKeyScreen() {
     if (!keyStr) return;
     setLoading(true);
     try {
-      const name  = fileName.trim() || 'secret.key';
-      const path  = FileSystem.cacheDirectory + name;
-      await FileSystem.writeAsStringAsync(path, keyStr, { encoding: FileSystem.EncodingType.UTF8 });
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(path, { mimeType: 'application/octet-stream', dialogTitle: 'Save your encryption key' });
-      } else {
-        setModal({ visible: true, type: 'success', title: 'Key Saved', message: `Saved as "${name}" in device cache.` });
+      const name = fileName.trim() || 'secret.key';
+      await saveAndShareText(keyStr, name, 'application/octet-stream', 'Save your encryption key');
+      if (Platform.OS !== 'web') {
+        setModal({ visible: true, type: 'success', title: 'Key Saved', message: `Saved as "${name}".` });
       }
     } catch (e) {
       setModal({ visible: true, type: 'error', title: 'Save Failed', message: e.message });
@@ -72,18 +72,28 @@ export default function GenKeyScreen() {
         colors={gradients.genKey}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.header}
+        style={[styles.header, { paddingTop: insets.top }]}
       >
-          <View style={styles.headerOrb} />
-          <SafeAreaView edges={['top']} style={{ width: '100%', alignItems: 'center' }}>
-            <View style={styles.headerIconWrap}>
-              <Text style={styles.headerEmoji}>🗝️</Text>
-            </View>
-            <Text style={styles.headerTitle}>Generate Key</Text>
-            <Text style={styles.headerSub}>
-              Creates a 256-bit cryptographically{'\n'}random Fernet encryption key.
-            </Text>
-          </SafeAreaView>
+        <View style={styles.headerOrb} />
+
+        {/* Back button */}
+        <Pressable
+          onPress={() => navigation.goBack()}
+          style={[styles.backBtn, { top: insets.top + rs(10) }]}
+          hitSlop={12}
+        >
+          <Text style={styles.backBtnText}>‹</Text>
+        </Pressable>
+
+        <View style={{ width: '100%', alignItems: 'center', paddingBottom: rs(36) }}>
+          <View style={styles.headerIconWrap}>
+            <Text style={styles.headerEmoji}>🗝️</Text>
+          </View>
+          <Text style={styles.headerTitle}>Generate Key</Text>
+          <Text style={styles.headerSub}>
+            Creates a 256-bit cryptographically{'\n'}random Fernet encryption key.
+          </Text>
+        </View>
       </LinearGradient>
 
       {/* ── Scrollable body ── */}
@@ -108,7 +118,20 @@ export default function GenKeyScreen() {
                   <Text style={styles.keyBitText}>256-bit</Text>
                 </View>
               </View>
-              <Text style={styles.keyPreview} selectable>{preview}</Text>
+
+              {/* Full key – scrollable horizontally, selectable for copy */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.keyScroll}
+              >
+                <Text style={styles.keyFull} selectable>{keyStr}</Text>
+              </ScrollView>
+
+              <View style={styles.keyPreviewRow}>
+                <Text style={styles.keyPreview} selectable>{preview}</Text>
+              </View>
+
               <View style={styles.keyMeta}>
                 <Text style={styles.keyMetaText}>✓ {keyStr.length} chars · Base64URL · Fernet-format</Text>
               </View>
@@ -182,7 +205,9 @@ export default function GenKeyScreen() {
               disabled={loading}
               style={({ pressed }) => [styles.outlineBtn, { opacity: pressed ? 0.8 : 1 }]}
             >
-              <Text style={styles.outlineBtnText}>📤  Save & Share Key File</Text>
+              <Text style={styles.outlineBtnText}>
+                {Platform.OS === 'web' ? '⬇️  Download Key File' : '📤  Save & Share Key File'}
+              </Text>
             </Pressable>
           )}
 
@@ -214,10 +239,9 @@ const styles = StyleSheet.create({
   root:   { flex: 1, backgroundColor: colors.bg1 },
   scroll: { paddingBottom: rs(48), paddingTop: rs(24) },
 
-  /* Header – full width, no horizontal bleed needed */
+  /* Header */
   header: {
     alignItems: 'center',
-    paddingBottom: rs(36),
     overflow: 'hidden',
   },
   headerOrb: {
@@ -229,6 +253,26 @@ const styles = StyleSheet.create({
     top: -rs(80),
     right: -rs(60),
   },
+
+  /* Custom back button */
+  backBtn: {
+    position: 'absolute',
+    left: rs(16),
+    width: rs(36),
+    height: rs(36),
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  backBtnText: {
+    color: colors.white,
+    fontSize: rs(26),
+    lineHeight: rs(30),
+    marginTop: -rs(2),
+  },
+
   headerIconWrap: {
     width: rs(74),
     height: rs(74),
@@ -291,13 +335,24 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     color: colors.white,
   },
+
+  /* Full key display */
+  keyScroll: { paddingBottom: rs(4) },
+  keyFull: {
+    fontFamily: fonts.mono,
+    fontSize: fontSize.sm,
+    color: colors.primary,
+    letterSpacing: 0.5,
+    marginBottom: rs(6),
+  },
+  keyPreviewRow: { marginBottom: rs(12) },
   keyPreview: {
     fontFamily: fonts.mono,
-    fontSize: fontSize.base,
-    color: colors.primary,
-    letterSpacing: 0.8,
-    marginBottom: rs(12),
+    fontSize: fontSize.xs,
+    color: colors.textMuted,
+    letterSpacing: 0.4,
   },
+
   keyMeta: {
     backgroundColor: 'rgba(129,140,248,0.12)',
     borderRadius: radius.sm,
@@ -407,6 +462,8 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     color: colors.text,
     paddingVertical: rs(14),
+    // web outline removal
+    ...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {}),
   },
 
   /* Buttons */
