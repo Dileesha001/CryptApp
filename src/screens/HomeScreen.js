@@ -62,59 +62,59 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <View style={styles.root}>
-
-      {/* ── Hero – always full width ── */}
-      <LinearGradient
-        colors={gradients.hero}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.hero}
-      >
-        <View style={[styles.orb, styles.orb1]} />
-        <View style={[styles.orb, styles.orb2]} />
-        <View style={[styles.orb, styles.orb3]} />
-
-        <SafeAreaView edges={['top']}>
-          <Animated.View
-            style={[
-              styles.heroInner,
-              { paddingHorizontal: pad, opacity: fade, transform: [{ translateY: fadeY }] },
-            ]}
-          >
-            <View style={styles.appBadge}>
-              <Text style={styles.appBadgeIcon}>🛡️</Text>
-              <Text style={styles.appBadgeLabel}>CryptVault</Text>
-            </View>
-
-            <Text style={[styles.heroTitle, isDesktop && styles.heroTitleLg]}>
-              Secure File{'\n'}Encryption
-            </Text>
-            <Text style={styles.heroSub}>
-              Military-grade protection for your files.{'\n'}
-              Powered by AES-128-CBC + HMAC-SHA256.
-            </Text>
-
-            <View style={styles.chipRow}>
-              {['Fernet Compatible', 'PBKDF2 · 600K iterations', 'Zero-knowledge'].map(t => (
-                <View key={t} style={styles.chip}>
-                  <Text style={styles.chipText}>{t}</Text>
-                </View>
-              ))}
-            </View>
-          </Animated.View>
-        </SafeAreaView>
-      </LinearGradient>
-
-      {/* ── Cards ── */}
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingHorizontal: pad }]}
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* ── Hero ── */}
+        <LinearGradient
+          colors={gradients.hero}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.hero}
+        >
+          <View style={[styles.orb, styles.orb1]} />
+          <View style={[styles.orb, styles.orb2]} />
+          <View style={[styles.orb, styles.orb3]} />
+
+          <SafeAreaView edges={['top']}>
+            <Animated.View
+              style={[
+                styles.heroInner,
+                { paddingHorizontal: pad, opacity: fade, transform: [{ translateY: fadeY }] },
+              ]}
+            >
+              <View style={styles.appBadge}>
+                <Text style={styles.appBadgeIcon}>🛡️</Text>
+                <Text style={styles.appBadgeLabel}>CryptVault</Text>
+              </View>
+
+              <Text style={[styles.heroTitle, isDesktop && styles.heroTitleLg]}>
+                Secure File{'\n'}Encryption
+              </Text>
+              <Text style={styles.heroSub}>
+                Military-grade protection for your files.{'\n'}
+                Powered by AES-128-CBC + HMAC-SHA256.
+              </Text>
+
+              <View style={styles.chipRow}>
+                {['Fernet Compatible', 'PBKDF2 · 600K iterations', 'Zero-knowledge'].map(t => (
+                  <View key={t} style={styles.chip}>
+                    <Text style={styles.chipText}>{t}</Text>
+                  </View>
+                ))}
+              </View>
+            </Animated.View>
+          </SafeAreaView>
+        </LinearGradient>
+
+        {/* ── Cards ── */}
         <Animated.View
           style={[
             styles.contentWrap,
             isDesktop && styles.contentWrapDesktop,
-            { opacity: fade, transform: [{ translateY: fadeY }] },
+            { paddingHorizontal: pad, opacity: fade, transform: [{ translateY: fadeY }] },
           ]}
         >
           <Text style={styles.sectionLabel}>CHOOSE AN ACTION</Text>
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg1 },
 
   /* Hero */
-  hero: { overflow: 'hidden', paddingBottom: rs(36), maxHeight: rs(340) },
+  hero: { overflow: 'hidden', paddingBottom: rs(36) },
   orb: { position: 'absolute', borderRadius: radius.full },
   orb1: { width: rs(320), height: rs(320), backgroundColor: 'rgba(255,255,255,0.07)', top: -rs(100), right: -rs(80) },
   orb2: { width: rs(200), height: rs(200), backgroundColor: 'rgba(255,255,255,0.05)', bottom: -rs(60), left: -rs(50) },
@@ -217,8 +217,9 @@ const styles = StyleSheet.create({
   },
 
   /* Content */
-  scroll: { paddingTop: rs(32), paddingBottom: rs(52) },
-  contentWrap: {},
+  scroll: { flex: 1 },
+  scrollContent: { paddingBottom: rs(52) },
+  contentWrap: { paddingTop: rs(32) },
   contentWrapDesktop: { maxWidth: 1100, alignSelf: 'center', width: '100%' },
 
   sectionLabel: {

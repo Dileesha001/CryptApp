@@ -15,6 +15,8 @@
  *   key = PBKDF2-HMAC-SHA256(password, salt, 600_000 iterations, 32 bytes)
  */
 
+import { atob, btoa } from '../utils/base64';
+
 const FERNET_VERSION = 0x80;
 const SALT_SIZE = 16;
 const PBKDF2_ITERATIONS = 600_000;
