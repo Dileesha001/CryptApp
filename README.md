@@ -1,21 +1,22 @@
 # 🛡️ CryptVault
 
-CryptVault is a modern, premium, cross-platform file encryption application built with **React Native** and **Expo**. It provides military-grade security to encrypt and decrypt files using a cryptographically secure 256-bit key or custom passwords, all designed within a sleek, glassmorphic dark interface.
+CryptVault is a modern, premium, cross-platform file encryption application built with **React Native** and **Expo**. It provides military-grade security to encrypt and decrypt files using cryptographically secure 256-bit Fernet keys or custom passwords, wrapped within a sleek glassmorphic dark interface.
 
-The encryption format is fully compatible with the standard **Fernet specification**, enabling seamless interoperability with Python scripts and other Fernet-compatible tools.
+The application's encryption format is fully compliant with the **Fernet Specification** (AES-128-CBC + HMAC-SHA256), enabling seamless interoperability with Python scripts (such as `file_crypt.py` in the root repository) and other standard Fernet tools.
 
 ---
 
-## ✨ Features
+## ✨ Key Features
 
-- **🔐 Robust Encryption**: Secures files using `AES-128-CBC` combined with `HMAC-SHA256` for integrity validation and tamper detection.
-- **🗝️ CSPRNG Key Generation**: Generates cryptographically secure 256-bit random Fernet keys.
-- **📂 Double Modes**:
-  - **Key File Mode**: Generate and download a `.key` file to encrypt/decrypt documents.
-  - **Password Mode**: Protect files with traditional passwords derived using secure hashing.
-- **🖥️ Responsive Glassmorphism Design**: Hand-crafted, modern responsive UI scaling elegantly from mobile screens up to 1440px wide desktop viewports.
-- **📤 Sharing & Exporting**: Integrated with Expo's document picker, sharing APIs, and file system to easily save keys and encrypted/decrypted outputs.
-- **🐍 Python Interoperable**: Fully compatible with CLI-based python script encryptors (`file_crypt.py` / cryptography library).
+- **🔐 Robust Encryption**: Encrypts files using `AES-128-CBC` combined with `HMAC-SHA256` for integrity validation and anti-tampering verification.
+- **🗝️ CSPRNG Key Generation**: Generates cryptographically secure 256-bit Fernet keys with instant copy-to-clipboard and `.key` file export.
+- **📂 Flexible Modes**:
+  - **Key File Mode**: Use `.key` secret files to encrypt and decrypt documents.
+  - **Password Mode**: Protect files with traditional passwords derived via **PBKDF2-HMAC-SHA256** (600k iterations).
+- **🖥️ Glassmorphism Design System**: Hand-crafted dark theme featuring glass visual effects, glowing accents, fluid micro-interactions, and responsive layout scaling from mobile to 1440px wide desktop viewports.
+- **📂 Cross-Platform File Management**: Native and Web support for picking files, saving encrypted outputs, downloading keys, and triggering native share dialogs.
+- **🅰️ Custom Typography**: Integrated Google Fonts (Inter) loading via custom hooks.
+- **🐍 Python Interoperability**: 100% compatible with the root CLI tool (`file_crypt.py`) and Python's `cryptography.fernet` module.
 
 ---
 
@@ -23,9 +24,9 @@ The encryption format is fully compatible with the standard **Fernet specificati
 
 CryptVault prioritizes cryptographic rigor:
 1. **Algorithm**: AES (Advanced Encryption Standard) in Cipher Block Chaining (CBC) mode with a 128-bit key size.
-2. **Authenticity**: HMAC-SHA256 signature calculated over the IV + Ciphertext to prevent padding oracle attacks and detect unauthorized alterations.
-3. **Key Derivation (Password Mode)**: PBKDF2 with SHA-256 using 600,000 iterations to resist brute-force cracking attempts.
-4. **Format Compatibility**: Strictly adheres to the Fernet token specification (Version 0x80).
+2. **Integrity & Authenticity**: HMAC-SHA256 signature calculated over the IV + Ciphertext to prevent padding oracle attacks and detect unauthorized alterations.
+3. **Key Derivation (Password Mode)**: PBKDF2 with SHA-256 using 600,000 iterations and a 16-byte random salt to resist brute-force cracking attempts.
+4. **Format Standard**: Strictly adheres to the Fernet token specification (Version `0x80`).
 
 ---
 
@@ -33,22 +34,31 @@ CryptVault prioritizes cryptographic rigor:
 
 ```filepath
 CryptApp/
-├── App.js                 # App entrypoint & theme-wrapper navigation configuration
-├── app.json               # Expo configuration
+├── App.js                 # App entrypoint & navigation state manager
+├── app.json               # Expo configuration settings
+├── index.js               # Entry registration for Expo
 ├── package.json           # App dependencies & scripts
-├── src/
-│   ├── components/
-│   │   ├── ActionCard.js  # Interactive menu options for Home
-│   │   └── StatusModal.js # Beautiful glassmorphic modal for feedback messages
-│   ├── crypto/
-│   │   └── fernet.js      # Custom Fernet encryption/decryption algorithm implementation
-│   ├── screens/
-│   │   ├── HomeScreen.js  # Main dashboard featuring action grids
-│   │   ├── GenKeyScreen.js# Fernet key generator and exporter
-│   │   ├── EncryptScreen.js# File encryptor (Key or Password mode)
-│   │   └── DecryptScreen.js# File decryptor with integrity validator
-│   └── theme.js           # Premium theme styling tokens, gradients, and custom utility functions
-└── assets/                # App icons and design assets
+├── README.md              # CryptVault specific documentation
+├── assets/                # App icons, splash screens, and design assets
+└── src/
+    ├── components/        # Reusable UI components
+    │   ├── ActionCard.js     # Glassmorphic card for main dashboard options
+    │   ├── FilePicker.js     # Unified file picker component for Web & Mobile
+    │   ├── PasswordInput.js  # Password input with visibility toggle & strength feedback
+    │   └── StatusModal.js    # Custom glassmorphic feedback modal for alerts & status
+    ├── crypto/            # Pure JavaScript Fernet engine
+    │   └── fernet.js         # AES-128-CBC + HMAC-SHA256 Fernet encoder/decoder
+    ├── hooks/             # Custom React hooks
+    │   └── useFonts.js       # Dynamic loader for Google Inter font family
+    ├── screens/           # Application views
+    │   ├── HomeScreen.js     # Main dashboard & hero navigation screen
+    │   ├── GenKeyScreen.js   # Fernet 256-bit key generator & saver screen
+    │   ├── EncryptScreen.js  # File encryption interface (Key / Password mode)
+    │   └── DecryptScreen.js  # File decryption & integrity check screen
+    ├── utils/             # Platform utility helpers
+    │   ├── base64.js         # Base64 and URL-safe Base64 converters
+    │   └── webFileIO.js      # Cross-platform file saving & web download handlers
+    └── theme.js           # Central design system, colors, tokens & responsiveness helper
 ```
 
 ---
@@ -57,7 +67,7 @@ CryptApp/
 
 ### Prerequisites
 
-Ensure you have the following installed on your machine:
+Ensure you have the following installed on your system:
 - **Node.js** (v18 or higher recommended)
 - **npm** or **yarn**
 
@@ -75,7 +85,7 @@ Ensure you have the following installed on your machine:
 
 ### Running the Application
 
-Because standard PowerShell policies might block script execution on some Windows environments, use **Command Prompt (cmd)** to run commands.
+For Windows environments where PowerShell policies may restrict script execution, run using **Command Prompt (cmd)** or use direct node modules invocation:
 
 - **Start Metro Bundler**:
   ```cmd
