@@ -16,12 +16,13 @@ export function getScreenDimensions() {
   return { width, height };
 }
 
-/** Scale a size relative to the base 390 pt design width */
+/** Scale a size relative to the base 390 pt design width.
+ *  Clamped to [0.85, 1.4] so values don't blow up on wide desktop screens. */
 export function rs(size) {
   const { width } = Dimensions.get('window');
   const scale = width / BASE_WIDTH;
-  const newSize = size * scale;
-  return Math.round(PixelRatio.roundToNearestPixel(newSize));
+  const clamped = Math.min(Math.max(scale, 0.85), 1.4);
+  return Math.round(PixelRatio.roundToNearestPixel(size * clamped));
 }
 
 /** Scale font size, clamped so text never gets too tiny or too huge */
@@ -38,12 +39,21 @@ export function isTablet() {
   return width >= 768;
 }
 
-/** Horizontal padding adapts to screen width */
+/** Horizontal padding adapts to screen width.
+ *  Uses fixed values at tablet/desktop so wide screens don't over-pad. */
 export function hPad() {
   const { width } = Dimensions.get('window');
-  if (width >= 1024) return rs(64);
-  if (width >= 768)  return rs(40);
-  return rs(20);
+  if (width >= 1024) return 48;   // fixed 48px on desktop
+  if (width >= 768)  return 32;   // fixed 32px on tablet
+  return rs(20);                  // proportional on mobile
+}
+
+/** Max content width for centered desktop layouts */
+export function maxContentWidth() {
+  const { width } = Dimensions.get('window');
+  if (width >= 1280) return 900;
+  if (width >= 1024) return 720;
+  return width;  // full width on smaller screens
 }
 
 // ─── Color Palette ───────────────────────────────────────────────────────────

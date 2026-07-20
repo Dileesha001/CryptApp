@@ -24,7 +24,7 @@ import PasswordInput from '../components/PasswordInput';
 import StatusModal   from '../components/StatusModal';
 import {
   colors, fonts, fontSize, gradients, radius,
-  shadows, spacing, rs, hPad,
+  shadows, spacing, rs, hPad, maxContentWidth,
 } from '../theme';
 
 const MODE_KEY  = 'key';
@@ -33,7 +33,9 @@ const MODE_PASS = 'password';
 export default function DecryptScreen() {
   const { width } = useWindowDimensions();
   const isTablet  = width >= 768;
+  const isDesktop = width >= 1024;
   const pad       = hPad();
+  const maxW      = maxContentWidth();
   const insets    = useSafeAreaInsets();
   const navigation = useNavigation();
 
@@ -149,27 +151,33 @@ export default function DecryptScreen() {
       >
         <View style={styles.headerOrb} />
 
-        {/* Back button */}
+        {/* Back button – on desktop, pin inside centered content area */}
         <Pressable
           onPress={() => navigation.goBack()}
-          style={[styles.backBtn, { top: insets.top + rs(10) }]}
+          style={[
+            styles.backBtn,
+            { top: insets.top + rs(10) },
+            isDesktop && { left: Math.max(16, (width - maxW) / 2 + 16) },
+          ]}
           hitSlop={12}
         >
           <Text style={styles.backBtnText}>‹</Text>
         </Pressable>
 
         <View style={{ width: '100%', alignItems: 'center', paddingBottom: rs(32) }}>
-          <View style={styles.headerIconWrap}>
-            <Text style={styles.headerEmoji}>🔓</Text>
-          </View>
-          <Text style={styles.headerTitle}>Decrypt File</Text>
-          <Text style={styles.headerSub}>
-            Restore an encrypted file using{'\n'}the same key or password used to encrypt it.
-          </Text>
+          <View style={[styles.headerInner, isDesktop && { maxWidth: maxW, width: '100%', alignItems: 'center' }]}>
+            <View style={styles.headerIconWrap}>
+              <Text style={styles.headerEmoji}>🔓</Text>
+            </View>
+            <Text style={styles.headerTitle}>Decrypt File</Text>
+            <Text style={styles.headerSub}>
+              Restore an encrypted file using{'\n'}the same key or password used to encrypt it.
+            </Text>
 
-          {/* HMAC badge */}
-          <View style={styles.hmacBadge}>
-            <Text style={styles.hmacText}>🛡️ HMAC-verified integrity check</Text>
+            {/* HMAC badge */}
+            <View style={styles.hmacBadge}>
+              <Text style={styles.hmacText}>🛡️ HMAC-verified integrity check</Text>
+            </View>
           </View>
         </View>
       </LinearGradient>
@@ -180,7 +188,7 @@ export default function DecryptScreen() {
         contentContainerStyle={[styles.scroll, { paddingHorizontal: pad }]}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={[styles.body, isTablet && styles.bodyTablet]}>
+        <View style={[styles.body, isTablet && styles.bodyTablet, isDesktop && styles.bodyDesktop]}>
 
           {/* Mode toggle */}
           <View style={styles.toggle}>
@@ -364,6 +372,9 @@ const styles = StyleSheet.create({
 
   body: { paddingTop: rs(4) },
   bodyTablet: { maxWidth: 640, alignSelf: 'center', width: '100%' },
+  bodyDesktop: { maxWidth: 760, alignSelf: 'center', width: '100%' },
+
+  headerInner: { alignItems: 'center' },
 
   toggle: {
     flexDirection: 'row', backgroundColor: colors.bg2,

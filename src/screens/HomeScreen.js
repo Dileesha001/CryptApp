@@ -13,13 +13,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import ActionCard from '../components/ActionCard';
 import {
   colors, fonts, fontSize, gradients, radius,
-  shadows, spacing, rs, hPad,
+  shadows, spacing, rs, hPad, maxContentWidth,
 } from '../theme';
 
 export default function HomeScreen({ navigation }) {
   const { width } = useWindowDimensions();
   const isTablet  = width >= 768;
   const isDesktop = width >= 1024;
+  const maxW      = maxContentWidth();
 
   const fadeY = useRef(new Animated.Value(24)).current;
   const fade  = useRef(new Animated.Value(0)).current;
@@ -79,37 +80,41 @@ export default function HomeScreen({ navigation }) {
           <View style={[styles.orb, styles.orb3]} />
 
           <SafeAreaView edges={['top']}>
-            <Animated.View
-              style={[
-                styles.heroInner,
-                { paddingHorizontal: pad, opacity: fade, transform: [{ translateY: fadeY }] },
-              ]}
-            >
-              <View style={styles.appBadge}>
-                <Text style={styles.appBadgeIcon}>🛡️</Text>
-                <Text style={styles.appBadgeLabel}>CryptVault</Text>
-              </View>
+            <View style={isDesktop && { alignItems: 'center', width: '100%' }}>
+              <Animated.View
+                style={[
+                  styles.heroInner,
+                  { paddingHorizontal: pad, opacity: fade, transform: [{ translateY: fadeY }] },
+                  isDesktop && { maxWidth: maxW, width: '100%' },
+                ]}
+              >
+                <View style={styles.appBadge}>
+                  <Text style={styles.appBadgeIcon}>🛡️</Text>
+                  <Text style={styles.appBadgeLabel}>CryptVault</Text>
+                </View>
 
-              <Text style={[styles.heroTitle, isDesktop && styles.heroTitleLg]}>
-                Secure File{'\n'}Encryption
-              </Text>
-              <Text style={styles.heroSub}>
-                Military-grade protection for your files.{'\n'}
-                Powered by AES-128-CBC + HMAC-SHA256.
-              </Text>
+                <Text style={[styles.heroTitle, isDesktop && styles.heroTitleLg]}>
+                  Secure File{'\n'}Encryption
+                </Text>
+                <Text style={[styles.heroSub, isDesktop && styles.heroSubDesktop]}>
+                  Military-grade protection for your files.{'\n'}
+                  Powered by AES-128-CBC + HMAC-SHA256.
+                </Text>
 
-              <View style={styles.chipRow}>
-                {['Fernet Compatible', 'PBKDF2 · 600K iterations', 'Zero-knowledge'].map(t => (
-                  <View key={t} style={styles.chip}>
-                    <Text style={styles.chipText}>{t}</Text>
-                  </View>
-                ))}
-              </View>
-            </Animated.View>
+                <View style={styles.chipRow}>
+                  {['Fernet Compatible', 'PBKDF2 · 600K iterations', 'Zero-knowledge'].map(t => (
+                    <View key={t} style={styles.chip}>
+                      <Text style={styles.chipText}>{t}</Text>
+                    </View>
+                  ))}
+                </View>
+              </Animated.View>
+            </View>
           </SafeAreaView>
         </LinearGradient>
 
         {/* ── Cards ── */}
+        <View style={isDesktop && styles.contentWrapDesktopOuter}>
         <Animated.View
           style={[
             styles.contentWrap,
@@ -163,6 +168,8 @@ export default function HomeScreen({ navigation }) {
 
           <Text style={styles.footer}>CryptVault v1.0 · AES-128-CBC · HMAC-SHA256</Text>
         </Animated.View>
+        {isDesktop && <View />}
+        </View>
       </ScrollView>
     </View>
   );
@@ -220,7 +227,8 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: rs(52) },
   contentWrap: { paddingTop: rs(32) },
-  contentWrapDesktop: { maxWidth: 1100, alignSelf: 'center', width: '100%' },
+  contentWrapDesktopOuter: { alignItems: 'center', width: '100%' },
+  contentWrapDesktop: { maxWidth: 900, width: '100%', alignSelf: 'center' },
 
   sectionLabel: {
     fontFamily: fonts.bodySemi, fontSize: fontSize.xs,
@@ -228,10 +236,12 @@ const styles = StyleSheet.create({
     marginBottom: rs(16), textTransform: 'uppercase',
   },
 
+  heroSubDesktop: { fontSize: fontSize.md },
+
   /* Card grid */
   cardGrid: { gap: rs(14) },
   cardGridTablet: { flexDirection: 'row', flexWrap: 'wrap' },
-  cardGridDesktop: { flexDirection: 'row', flexWrap: 'nowrap' },
+  cardGridDesktop: { flexDirection: 'row', flexWrap: 'nowrap', gap: rs(16) },
 
   cardTabletItem: { width: '47.5%' },
   cardDesktopItem: { flex: 1 },

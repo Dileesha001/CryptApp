@@ -25,7 +25,7 @@ import PasswordInput from '../components/PasswordInput';
 import StatusModal   from '../components/StatusModal';
 import {
   colors, fonts, fontSize, gradients, radius,
-  shadows, spacing, rs, hPad,
+  shadows, spacing, rs, hPad, maxContentWidth,
 } from '../theme';
 
 const MODE_KEY  = 'key';
@@ -34,7 +34,9 @@ const MODE_PASS = 'password';
 export default function EncryptScreen() {
   const { width } = useWindowDimensions();
   const isTablet  = width >= 768;
+  const isDesktop = width >= 1024;
   const pad       = hPad();
+  const maxW      = maxContentWidth();
   const insets    = useSafeAreaInsets();
   const navigation = useNavigation();
 
@@ -152,33 +154,42 @@ export default function EncryptScreen() {
       >
         <View style={styles.headerOrb} />
 
-        {/* Back button */}
+        {/* Back button – on desktop, pin it inside the centered content area */}
         <Pressable
           onPress={() => navigation.goBack()}
-          style={[styles.backBtn, { top: insets.top + rs(10) }]}
+          style={[
+            styles.backBtn,
+            { top: insets.top + rs(10) },
+            isDesktop && { left: Math.max(16, (width - maxW) / 2 + 16) },
+          ]}
           hitSlop={12}
         >
           <Text style={styles.backBtnText}>‹</Text>
         </Pressable>
 
-        <View style={{ width: '100%', alignItems: 'center', paddingBottom: rs(32) }}>
-          <View style={styles.headerIconWrap}>
-            <Text style={styles.headerEmoji}>🔒</Text>
-          </View>
-          <Text style={styles.headerTitle}>Encrypt File</Text>
-          <Text style={styles.headerSub}>
-            AES-128-CBC with HMAC-SHA256{'\n'}authentication & tamper detection
-          </Text>
+        <View style={[
+          { width: '100%', alignItems: 'center', paddingBottom: rs(32) },
+          isDesktop && { alignItems: 'center' },
+        ]}>
+          <View style={[styles.headerInner, isDesktop && { maxWidth: maxW, width: '100%', alignItems: 'center' }]}>
+            <View style={styles.headerIconWrap}>
+              <Text style={styles.headerEmoji}>🔒</Text>
+            </View>
+            <Text style={styles.headerTitle}>Encrypt File</Text>
+            <Text style={styles.headerSub}>
+              AES-128-CBC with HMAC-SHA256{'\n'}authentication & tamper detection
+            </Text>
 
-          {/* Step indicators */}
-          <View style={styles.steps}>
-            {['Select File', 'Choose Method', 'Encrypt'].map((s, i) => (
-              <View key={s} style={styles.stepWrap}>
-                <View style={styles.stepDot}><Text style={styles.stepNum}>{i + 1}</Text></View>
-                <Text style={styles.stepLabel}>{s}</Text>
-                {i < 2 && <View style={styles.stepLine} />}
-              </View>
-            ))}
+            {/* Step indicators */}
+            <View style={styles.steps}>
+              {['Select File', 'Choose Method', 'Encrypt'].map((s, i) => (
+                <View key={s} style={styles.stepWrap}>
+                  <View style={styles.stepDot}><Text style={styles.stepNum}>{i + 1}</Text></View>
+                  <Text style={styles.stepLabel}>{s}</Text>
+                  {i < 2 && <View style={styles.stepLine} />}
+                </View>
+              ))}
+            </View>
           </View>
         </View>
       </LinearGradient>
@@ -189,7 +200,7 @@ export default function EncryptScreen() {
         contentContainerStyle={[styles.scroll, { paddingHorizontal: pad }]}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={[styles.body, isTablet && styles.bodyTablet]}>
+        <View style={[styles.body, isTablet && styles.bodyTablet, isDesktop && styles.bodyDesktop]}>
 
           {/* Mode toggle */}
           <View style={styles.toggle}>
@@ -373,6 +384,9 @@ const styles = StyleSheet.create({
 
   body: { paddingTop: rs(4) },
   bodyTablet: { maxWidth: 640, alignSelf: 'center', width: '100%' },
+  bodyDesktop: { maxWidth: 760, alignSelf: 'center', width: '100%' },
+
+  headerInner: { alignItems: 'center' },
 
   toggle: {
     flexDirection: 'row',

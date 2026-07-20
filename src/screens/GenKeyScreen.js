@@ -19,13 +19,15 @@ import { saveAndShareText } from '../utils/webFileIO';
 import StatusModal from '../components/StatusModal';
 import {
   colors, fonts, fontSize, gradients, radius,
-  shadows, spacing, rs, hPad,
+  shadows, spacing, rs, hPad, maxContentWidth,
 } from '../theme';
 
 export default function GenKeyScreen() {
   const { width } = useWindowDimensions();
   const isTablet  = width >= 768;
+  const isDesktop = width >= 1024;
   const pad       = hPad();
+  const maxW      = maxContentWidth();
   const insets    = useSafeAreaInsets();
   const navigation = useNavigation();
 
@@ -76,23 +78,29 @@ export default function GenKeyScreen() {
       >
         <View style={styles.headerOrb} />
 
-        {/* Back button */}
+        {/* Back button – on desktop, pin inside the centered content area */}
         <Pressable
           onPress={() => navigation.goBack()}
-          style={[styles.backBtn, { top: insets.top + rs(10) }]}
+          style={[
+            styles.backBtn,
+            { top: insets.top + rs(10) },
+            isDesktop && { left: Math.max(16, (width - maxW) / 2 + 16) },
+          ]}
           hitSlop={12}
         >
           <Text style={styles.backBtnText}>‹</Text>
         </Pressable>
 
         <View style={{ width: '100%', alignItems: 'center', paddingBottom: rs(36) }}>
-          <View style={styles.headerIconWrap}>
-            <Text style={styles.headerEmoji}>🗝️</Text>
+          <View style={[styles.headerInner, isDesktop && { maxWidth: maxW, width: '100%', alignItems: 'center' }]}>
+            <View style={styles.headerIconWrap}>
+              <Text style={styles.headerEmoji}>🗝️</Text>
+            </View>
+            <Text style={styles.headerTitle}>Generate Key</Text>
+            <Text style={styles.headerSub}>
+              Creates a 256-bit cryptographically{'\n'}random Fernet encryption key.
+            </Text>
           </View>
-          <Text style={styles.headerTitle}>Generate Key</Text>
-          <Text style={styles.headerSub}>
-            Creates a 256-bit cryptographically{'\n'}random Fernet encryption key.
-          </Text>
         </View>
       </LinearGradient>
 
@@ -102,7 +110,7 @@ export default function GenKeyScreen() {
         contentContainerStyle={[styles.scroll, { paddingHorizontal: pad }]}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={[styles.body, isTablet && styles.bodyTablet]}>
+        <View style={[styles.body, isTablet && styles.bodyTablet, isDesktop && styles.bodyDesktop]}>
 
           {/* Key preview / placeholder */}
           {keyStr ? (
@@ -302,6 +310,9 @@ const styles = StyleSheet.create({
   /* Body */
   body: { paddingTop: rs(4) },
   bodyTablet: { maxWidth: 640, alignSelf: 'center', width: '100%' },
+  bodyDesktop: { maxWidth: 760, alignSelf: 'center', width: '100%' },
+
+  headerInner: { alignItems: 'center' },
 
   /* Key card */
   keyCard: {
