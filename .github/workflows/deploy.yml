@@ -30,6 +30,12 @@ jobs:
         env:
           NODE_ENV: production
 
+      - name: Fix asset paths for GitHub Pages sub-path
+        run: |
+          # Expo Metro emits absolute paths (e.g. /_expo/...) which break under /CryptApp/.
+          # Replace every leading "/" reference with "/CryptApp/" in the generated index.html.
+          sed -i 's|src="/|src="/CryptApp/|g; s|href="/|href="/CryptApp/|g' dist/index.html
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
