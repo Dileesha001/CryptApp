@@ -17,9 +17,10 @@ import { useNavigation } from '@react-navigation/native';
 import { generateKey } from '../crypto/fernet';
 import { saveAndShareText } from '../utils/webFileIO';
 import StatusModal from '../components/StatusModal';
+import DesktopLayout from '../components/DesktopLayout';
 import {
   colors, fonts, fontSize, gradients, radius,
-  shadows, spacing, rs, hPad, maxContentWidth,
+  shadows, spacing, rs, hPad,
 } from '../theme';
 
 export default function GenKeyScreen() {
@@ -27,7 +28,6 @@ export default function GenKeyScreen() {
   const isTablet  = width >= 768;
   const isDesktop = width >= 1024;
   const pad       = hPad();
-  const maxW      = maxContentWidth();
   const insets    = useSafeAreaInsets();
   const navigation = useNavigation();
 
@@ -68,41 +68,67 @@ export default function GenKeyScreen() {
     : null;
 
   return (
+    <DesktopLayout currentScreen="GenKey">
     <View style={styles.root}>
-      {/* ── Header gradient – full width, above scroll ── */}
-      <LinearGradient
-        colors={gradients.genKey}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.header, { paddingTop: insets.top }]}
-      >
-        <View style={styles.headerOrb} />
 
-        {/* Back button – on desktop, pin inside the centered content area */}
-        <Pressable
-          onPress={() => navigation.goBack()}
-          style={[
-            styles.backBtn,
-            { top: insets.top + rs(10) },
-            isDesktop && { left: Math.max(16, (width - maxW) / 2 + 16) },
-          ]}
-          hitSlop={12}
+      {/* ── Header: compact bar on desktop, full gradient on mobile ── */}
+      {isDesktop ? (
+        <LinearGradient
+          colors={gradients.genKey}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+          style={styles.desktopHeader}
         >
-          <Text style={styles.backBtnText}>‹</Text>
-        </Pressable>
-
-        <View style={{ width: '100%', alignItems: 'center', paddingBottom: rs(36) }}>
-          <View style={[styles.headerInner, isDesktop && { maxWidth: maxW, width: '100%', alignItems: 'center' }]}>
-            <View style={styles.headerIconWrap}>
-              <Text style={styles.headerEmoji}>🗝️</Text>
+          <View style={styles.desktopHeaderOrb} />
+          <View style={styles.desktopHeaderContent}>
+            <View style={styles.desktopHeaderLeft}>
+              <Pressable onPress={() => navigation.goBack()} style={styles.desktopBackBtn} hitSlop={12}>
+                <Text style={styles.desktopBackText}>‹</Text>
+              </Pressable>
+              <View style={styles.desktopHeaderIconWrap}>
+                <Text style={styles.desktopHeaderEmoji}>🗝️</Text>
+              </View>
+              <View>
+                <Text style={styles.desktopHeaderTitle}>Generate Key</Text>
+                <Text style={styles.desktopHeaderSub}>256-bit CSPRNG · Base64URL Fernet format · AES-128-CBC compatible</Text>
+              </View>
             </View>
-            <Text style={styles.headerTitle}>Generate Key</Text>
-            <Text style={styles.headerSub}>
-              Creates a 256-bit cryptographically{'\n'}random Fernet encryption key.
-            </Text>
+            <View style={styles.desktopSpecChips}>
+              {['AES-128-CBC', 'HMAC-SHA256', 'Fernet v80'].map(s => (
+                <View key={s} style={styles.desktopSpecChip}>
+                  <Text style={styles.desktopSpecChipText}>{s}</Text>
+                </View>
+              ))}
+            </View>
           </View>
-        </View>
-      </LinearGradient>
+        </LinearGradient>
+      ) : (
+        <LinearGradient
+          colors={gradients.genKey}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.header, { paddingTop: insets.top }]}
+        >
+          <View style={styles.headerOrb} />
+          <Pressable
+            onPress={() => navigation.goBack()}
+            style={[styles.backBtn, { top: insets.top + rs(10) }]}
+            hitSlop={12}
+          >
+            <Text style={styles.backBtnText}>‹</Text>
+          </Pressable>
+          <View style={{ width: '100%', alignItems: 'center', paddingBottom: rs(36) }}>
+            <View style={styles.headerInner}>
+              <View style={styles.headerIconWrap}>
+                <Text style={styles.headerEmoji}>🗝️</Text>
+              </View>
+              <Text style={styles.headerTitle}>Generate Key</Text>
+              <Text style={styles.headerSub}>
+                Creates a 256-bit cryptographically{'\n'}random Fernet encryption key.
+              </Text>
+            </View>
+          </View>
+        </LinearGradient>
+      )}
 
       {/* ── Scrollable body ── */}
       <ScrollView
@@ -240,6 +266,7 @@ export default function GenKeyScreen() {
         onClose={() => setModal({ visible: false })}
       />
     </View>
+    </DesktopLayout>
   );
 }
 
@@ -309,10 +336,54 @@ const styles = StyleSheet.create({
 
   /* Body */
   body: { paddingTop: rs(4) },
-  bodyTablet: { maxWidth: 640, alignSelf: 'center', width: '100%' },
-  bodyDesktop: { maxWidth: 760, alignSelf: 'center', width: '100%' },
-
+  bodyTablet:  { maxWidth: 640, alignSelf: 'center', width: '100%' },
+  bodyDesktop: { maxWidth: 800, alignSelf: 'center', width: '100%' },
   headerInner: { alignItems: 'center' },
+
+  /* ── Desktop compact header ── */
+  desktopHeader: {
+    height: 88, overflow: 'hidden',
+    position: 'relative', justifyContent: 'center',
+  },
+  desktopHeaderOrb: {
+    position: 'absolute',
+    width: 200, height: 200, borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    top: -80, right: -40,
+  },
+  desktopHeaderContent: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between', paddingHorizontal: 32,
+  },
+  desktopHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  desktopBackBtn: {
+    width: 32, height: 32, borderRadius: 99,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  desktopBackText: { color: colors.white, fontSize: 22, lineHeight: 26, marginTop: -2 },
+  desktopHeaderIconWrap: {
+    width: 42, height: 42, borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.20)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  desktopHeaderEmoji: { fontSize: 22 },
+  desktopHeaderTitle: {
+    fontFamily: fonts.heading, fontSize: 18, color: colors.white, letterSpacing: -0.3,
+  },
+  desktopHeaderSub: {
+    fontFamily: fonts.body, fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2,
+  },
+  desktopSpecChips: { flexDirection: 'row', gap: 6 },
+  desktopSpecChip: {
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    borderRadius: 99,
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)',
+  },
+  desktopSpecChipText: {
+    fontFamily: fonts.bodyMed, fontSize: 10, color: colors.white,
+  },
 
   /* Key card */
   keyCard: {
