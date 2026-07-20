@@ -2,6 +2,7 @@
   "name": "cryptapp",
   "version": "1.0.0",
   "main": "index.js",
+  "homepage": "https://dileesha001.github.io/CryptApp",
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
     "@expo-google-fonts/space-grotesk": "^0.4.1",
@@ -28,7 +29,12 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "predeploy": "npx expo export -p web",
+    "deploy": "gh-pages -d dist"
+  },
+  "devDependencies": {
+    "gh-pages": "^6.3.0"
   },
   "private": true
 }
