@@ -1,21 +1,17 @@
-// HomeScreen.js – Premium responsive home hub
+// HomeScreen.js – Premium fully-responsive home hub
 import React, { useEffect, useRef } from 'react';
 import {
   Animated,
   ScrollView,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ActionCard from '../components/ActionCard';
 import DesktopLayout from '../components/DesktopLayout';
-import {
-  colors, fonts, fontSize, gradients, radius,
-  shadows, rs, hPad,
-} from '../theme';
+import useTheme from '../hooks/useTheme';
 
 const FEATURES = [
   { icon: '🔐', text: 'AES-128-CBC symmetric encryption' },
@@ -25,10 +21,11 @@ const FEATURES = [
 ];
 
 export default function HomeScreen({ navigation }) {
-  const { width } = useWindowDimensions();
-  const isTablet  = width >= 768;
-  const isDesktop = width >= 1024;
-  const pad       = hPad();
+  const {
+    isTablet, isDesktop,
+    hPad, heroPanelWidth,
+    colors, fonts, fontSize, gradients, radius, shadows, rs,
+  } = useTheme();
 
   const fadeY = useRef(new Animated.Value(24)).current;
   const fade  = useRef(new Animated.Value(0)).current;
@@ -67,21 +64,24 @@ export default function HomeScreen({ navigation }) {
     },
   ];
 
+  // ── Derived styles (reactive to window size) ─────────────────────────────
+  const s = makeStyles({ colors, fonts, fontSize, gradients, radius, shadows, rs, isTablet, isDesktop });
+
   // ── Info card (reused in both layouts) ──────────────────────────────────────
   const InfoCard = () => (
-    <View style={styles.infoCard}>
+    <View style={s.infoCard}>
       <LinearGradient
         colors={gradients.subtlePurple}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.infoGradient}
+        style={s.infoGradient}
       >
-        <Text style={styles.infoIcon}>ℹ️</Text>
-        <View style={styles.infoText}>
-          <Text style={styles.infoTitle}>Cross-platform compatible</Text>
-          <Text style={styles.infoSub}>
+        <Text style={s.infoIcon}>ℹ️</Text>
+        <View style={s.infoText}>
+          <Text style={s.infoTitle}>Cross-platform compatible</Text>
+          <Text style={s.infoSub}>
             Files encrypted here are fully compatible with{' '}
-            <Text style={styles.infoMono}>file_crypt.py</Text>
+            <Text style={s.infoMono}>file_crypt.py</Text>
             {' '}— encrypt on mobile, decrypt with Python and vice versa.
           </Text>
         </View>
@@ -96,50 +96,50 @@ export default function HomeScreen({ navigation }) {
         /* ══════════════════════════════════════════════════════════════════════
            DESKTOP  –  Left: gradient hero panel | Right: scrollable cards
            ══════════════════════════════════════════════════════════════════════ */
-        <View style={styles.desktopRoot}>
+        <View style={s.desktopRoot}>
 
           {/* ── Left hero panel ── */}
           <LinearGradient
             colors={gradients.hero}
             start={{ x: 0, y: 0 }}
             end={{ x: 0.7, y: 1 }}
-            style={styles.desktopHeroPanel}
+            style={[s.desktopHeroPanel, { width: heroPanelWidth }]}
           >
             {/* Decorative orbs */}
-            <View style={styles.deskOrb1} />
-            <View style={styles.deskOrb2} />
+            <View style={s.deskOrb1} />
+            <View style={s.deskOrb2} />
 
-            <Animated.View style={[styles.desktopHeroInner, { opacity: fade, transform: [{ translateY: fadeY }] }]}>
+            <Animated.View style={[s.desktopHeroInner, { opacity: fade, transform: [{ translateY: fadeY }] }]}>
               {/* App badge */}
-              <View style={styles.appBadge}>
-                <Text style={styles.appBadgeIcon}>🛡️</Text>
-                <Text style={styles.appBadgeLabel}>CryptVault</Text>
+              <View style={s.appBadge}>
+                <Text style={s.appBadgeIcon}>🛡️</Text>
+                <Text style={s.appBadgeLabel}>CryptVault</Text>
               </View>
 
-              <Text style={styles.desktopHeroTitle}>
+              <Text style={s.desktopHeroTitle}>
                 Secure File{'\n'}Encryption
               </Text>
-              <Text style={styles.desktopHeroSub}>
+              <Text style={s.desktopHeroSub}>
                 Military-grade protection for your files, powered by AES-128-CBC + HMAC-SHA256 authentication.
               </Text>
 
               {/* Feature checklist */}
-              <View style={styles.desktopFeatureList}>
+              <View style={s.desktopFeatureList}>
                 {FEATURES.map(f => (
-                  <View key={f.text} style={styles.desktopFeatureItem}>
-                    <View style={styles.desktopFeatureDot}>
-                      <Text style={styles.desktopFeatureIcon}>{f.icon}</Text>
+                  <View key={f.text} style={s.desktopFeatureItem}>
+                    <View style={s.desktopFeatureDot}>
+                      <Text style={s.desktopFeatureIcon}>{f.icon}</Text>
                     </View>
-                    <Text style={styles.desktopFeatureText}>{f.text}</Text>
+                    <Text style={s.desktopFeatureText} numberOfLines={2}>{f.text}</Text>
                   </View>
                 ))}
               </View>
 
               {/* Tech chips */}
-              <View style={styles.chipRow}>
+              <View style={s.chipRow}>
                 {['Fernet Compatible', 'PBKDF2 · 600K', 'Zero-knowledge'].map(t => (
-                  <View key={t} style={styles.chip}>
-                    <Text style={styles.chipText}>{t}</Text>
+                  <View key={t} style={s.chip}>
+                    <Text style={s.chipText}>{t}</Text>
                   </View>
                 ))}
               </View>
@@ -148,14 +148,14 @@ export default function HomeScreen({ navigation }) {
 
           {/* ── Right: action cards ── */}
           <ScrollView
-            style={styles.desktopCardsPanel}
+            style={s.desktopCardsPanel}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.desktopCardsPanelContent}
+            contentContainerStyle={s.desktopCardsPanelContent}
           >
             <Animated.View style={{ opacity: fade, transform: [{ translateY: fadeY }] }}>
-              <Text style={styles.sectionLabel}>CHOOSE AN ACTION</Text>
+              <Text style={s.sectionLabel}>CHOOSE AN ACTION</Text>
 
-              <View style={styles.desktopCardsStack}>
+              <View style={s.desktopCardsStack}>
                 {cards.map(c => (
                   <ActionCard
                     key={c.key}
@@ -169,19 +169,19 @@ export default function HomeScreen({ navigation }) {
               </View>
 
               <InfoCard />
-              <Text style={styles.footer}>CryptVault v1.0 · AES-128-CBC · HMAC-SHA256</Text>
+              <Text style={s.footer}>CryptVault v1.0 · AES-128-CBC · HMAC-SHA256</Text>
             </Animated.View>
           </ScrollView>
         </View>
 
       ) : (
         /* ══════════════════════════════════════════════════════════════════════
-           MOBILE / TABLET  –  existing stacked layout (unchanged)
+           MOBILE / TABLET  –  stacked layout
            ══════════════════════════════════════════════════════════════════════ */
-        <View style={styles.root}>
+        <View style={s.root}>
           <ScrollView
-            style={styles.scroll}
-            contentContainerStyle={styles.scrollContent}
+            style={s.scroll}
+            contentContainerStyle={s.scrollContent}
             showsVerticalScrollIndicator={false}
           >
             {/* Hero */}
@@ -189,36 +189,36 @@ export default function HomeScreen({ navigation }) {
               colors={gradients.hero}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={styles.hero}
+              style={s.hero}
             >
-              <View style={[styles.orb, styles.orb1]} />
-              <View style={[styles.orb, styles.orb2]} />
-              <View style={[styles.orb, styles.orb3]} />
+              <View style={[s.orb, s.orb1]} />
+              <View style={[s.orb, s.orb2]} />
+              <View style={[s.orb, s.orb3]} />
 
               <SafeAreaView edges={['top']}>
                 <Animated.View
                   style={[
-                    styles.heroInner,
-                    { paddingHorizontal: pad, opacity: fade, transform: [{ translateY: fadeY }] },
+                    s.heroInner,
+                    { paddingHorizontal: hPad, opacity: fade, transform: [{ translateY: fadeY }] },
                   ]}
                 >
-                  <View style={styles.appBadge}>
-                    <Text style={styles.appBadgeIcon}>🛡️</Text>
-                    <Text style={styles.appBadgeLabel}>CryptVault</Text>
+                  <View style={s.appBadge}>
+                    <Text style={s.appBadgeIcon}>🛡️</Text>
+                    <Text style={s.appBadgeLabel}>CryptVault</Text>
                   </View>
 
-                  <Text style={styles.heroTitle}>
+                  <Text style={s.heroTitle}>
                     Secure File{'\n'}Encryption
                   </Text>
-                  <Text style={styles.heroSub}>
+                  <Text style={s.heroSub}>
                     Military-grade protection for your files.{'\n'}
                     Powered by AES-128-CBC + HMAC-SHA256.
                   </Text>
 
-                  <View style={styles.chipRow}>
+                  <View style={s.chipRow}>
                     {['Fernet Compatible', 'PBKDF2 · 600K iterations', 'Zero-knowledge'].map(t => (
-                      <View key={t} style={styles.chip}>
-                        <Text style={styles.chipText}>{t}</Text>
+                      <View key={t} style={s.chip}>
+                        <Text style={s.chipText}>{t}</Text>
                       </View>
                     ))}
                   </View>
@@ -229,13 +229,13 @@ export default function HomeScreen({ navigation }) {
             {/* Cards */}
             <Animated.View
               style={[
-                styles.contentWrap,
-                { paddingHorizontal: pad, opacity: fade, transform: [{ translateY: fadeY }] },
+                s.contentWrap,
+                { paddingHorizontal: hPad, opacity: fade, transform: [{ translateY: fadeY }] },
               ]}
             >
-              <Text style={styles.sectionLabel}>CHOOSE AN ACTION</Text>
+              <Text style={s.sectionLabel}>CHOOSE AN ACTION</Text>
 
-              <View style={[styles.cardGrid, isTablet && styles.cardGridTablet]}>
+              <View style={[s.cardGrid, isTablet && s.cardGridTablet]}>
                 {cards.map(c => (
                   <ActionCard
                     key={c.key}
@@ -244,13 +244,13 @@ export default function HomeScreen({ navigation }) {
                     icon={c.icon}
                     gradient={c.gradient}
                     onPress={() => navigation.navigate(c.screen)}
-                    style={isTablet && styles.cardTabletItem}
+                    style={isTablet && s.cardTabletItem}
                   />
                 ))}
               </View>
 
               <InfoCard />
-              <Text style={styles.footer}>CryptVault v1.0 · AES-128-CBC · HMAC-SHA256</Text>
+              <Text style={s.footer}>CryptVault v1.0 · AES-128-CBC · HMAC-SHA256</Text>
             </Animated.View>
           </ScrollView>
         </View>
@@ -260,192 +260,195 @@ export default function HomeScreen({ navigation }) {
   );
 }
 
-const styles = StyleSheet.create({
+// ── Reactive stylesheet factory ───────────────────────────────────────────────
+function makeStyles({ colors, fonts, fontSize, gradients, radius, shadows, rs, isTablet, isDesktop }) {
+  return {
+    /* ── Shared root ── */
+    root: { flex: 1, backgroundColor: colors.bg1 },
 
-  /* ── Shared root ── */
-  root: { flex: 1, backgroundColor: colors.bg1 },
+    /* ══ DESKTOP ══════════════════════════════════════════════════════════════ */
 
-  /* ══ DESKTOP ══════════════════════════════════════════════════════════════ */
+    desktopRoot: {
+      flex: 1,
+      flexDirection: 'row',
+      backgroundColor: colors.bg1,
+    },
 
-  desktopRoot: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: colors.bg1,
-  },
+    /* Left hero panel — width applied inline (fluid) */
+    desktopHeroPanel: {
+      flexShrink: 0,
+      overflow: 'hidden',
+      position: 'relative',
+    },
+    deskOrb1: {
+      position: 'absolute',
+      width: 340,
+      height: 340,
+      borderRadius: 170,
+      backgroundColor: 'rgba(255,255,255,0.07)',
+      top: -120,
+      right: -100,
+    },
+    deskOrb2: {
+      position: 'absolute',
+      width: 220,
+      height: 220,
+      borderRadius: 110,
+      backgroundColor: 'rgba(255,255,255,0.05)',
+      bottom: -80,
+      left: -60,
+    },
+    desktopHeroInner: {
+      flex: 1,
+      paddingHorizontal: 36,
+      paddingVertical: 48,
+      justifyContent: 'center',
+    },
+    desktopHeroTitle: {
+      fontFamily: fonts.heading,
+      fontSize: Math.min(fontSize.xxl + 8, 44),
+      color: colors.white,
+      lineHeight: Math.min(fontSize.xxl + 16, 52),
+      letterSpacing: -1.5,
+      marginBottom: rs(14),
+    },
+    desktopHeroSub: {
+      fontFamily: fonts.body,
+      fontSize: fontSize.sm,
+      color: 'rgba(255,255,255,0.82)',
+      lineHeight: rs(22),
+      marginBottom: rs(28),
+    },
+    desktopFeatureList: {
+      gap: rs(10),
+      marginBottom: rs(28),
+    },
+    desktopFeatureItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: rs(10),
+    },
+    desktopFeatureDot: {
+      width: 28,
+      height: 28,
+      borderRadius: 8,
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+    },
+    desktopFeatureIcon: { fontSize: 13 },
+    desktopFeatureText: {
+      fontFamily: fonts.bodyMed,
+      fontSize: fontSize.sm,
+      color: 'rgba(255,255,255,0.88)',
+      flex: 1,
+    },
 
-  /* Left hero panel */
-  desktopHeroPanel: {
-    width: 400,
-    flexShrink: 0,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  deskOrb1: {
-    position: 'absolute',
-    width: 340,
-    height: 340,
-    borderRadius: 170,
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    top: -120,
-    right: -100,
-  },
-  deskOrb2: {
-    position: 'absolute',
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    bottom: -80,
-    left: -60,
-  },
-  desktopHeroInner: {
-    flex: 1,
-    paddingHorizontal: 44,
-    paddingVertical: 52,
-    justifyContent: 'center',
-  },
-  desktopHeroTitle: {
-    fontFamily: fonts.heading,
-    fontSize: 44,
-    color: colors.white,
-    lineHeight: 52,
-    letterSpacing: -1.5,
-    marginBottom: 16,
-  },
-  desktopHeroSub: {
-    fontFamily: fonts.body,
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.82)',
-    lineHeight: 22,
-    marginBottom: 32,
-  },
-  desktopFeatureList: {
-    gap: 12,
-    marginBottom: 32,
-  },
-  desktopFeatureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  desktopFeatureDot: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  desktopFeatureIcon: { fontSize: 14 },
-  desktopFeatureText: {
-    fontFamily: fonts.bodyMed,
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.88)',
-  },
+    /* Right cards panel */
+    desktopCardsPanel: {
+      flex: 1,
+      backgroundColor: colors.bg1,
+      borderLeftWidth: 1,
+      borderLeftColor: 'rgba(255,255,255,0.06)',
+      minWidth: 0,
+    },
+    desktopCardsPanelContent: {
+      padding: rs(36),
+      paddingTop: rs(32),
+      minHeight: '100%',
+    },
+    desktopCardsStack: {
+      gap: rs(12),
+      marginBottom: rs(20),
+    },
 
-  /* Right cards panel */
-  desktopCardsPanel: {
-    flex: 1,
-    backgroundColor: colors.bg1,
-    borderLeftWidth: 1,
-    borderLeftColor: 'rgba(255,255,255,0.06)',
-  },
-  desktopCardsPanelContent: {
-    padding: 40,
-    paddingTop: 36,
-    minHeight: '100%',
-  },
-  desktopCardsStack: {
-    gap: 14,
-    marginBottom: 24,
-  },
+    /* ══ MOBILE / TABLET ══════════════════════════════════════════════════════ */
 
-  /* ══ MOBILE / TABLET ══════════════════════════════════════════════════════ */
+    scroll: { flex: 1 },
+    scrollContent: { paddingBottom: rs(52) },
+    contentWrap: { paddingTop: rs(32) },
 
-  scroll: { flex: 1 },
-  scrollContent: { paddingBottom: rs(52) },
-  contentWrap: { paddingTop: rs(32) },
+    hero: { overflow: 'hidden', paddingBottom: rs(36) },
+    orb:  { position: 'absolute', borderRadius: radius.full },
+    orb1: { width: rs(320), height: rs(320), backgroundColor: 'rgba(255,255,255,0.07)', top: -rs(100), right: -rs(80) },
+    orb2: { width: rs(200), height: rs(200), backgroundColor: 'rgba(255,255,255,0.05)', bottom: -rs(60), left: -rs(50) },
+    orb3: { width: rs(140), height: rs(140), backgroundColor: 'rgba(255,255,255,0.04)', top: rs(60), right: rs(200) },
 
-  hero: { overflow: 'hidden', paddingBottom: rs(36) },
-  orb:  { position: 'absolute', borderRadius: radius.full },
-  orb1: { width: rs(320), height: rs(320), backgroundColor: 'rgba(255,255,255,0.07)', top: -rs(100), right: -rs(80) },
-  orb2: { width: rs(200), height: rs(200), backgroundColor: 'rgba(255,255,255,0.05)', bottom: -rs(60), left: -rs(50) },
-  orb3: { width: rs(140), height: rs(140), backgroundColor: 'rgba(255,255,255,0.04)', top: rs(60), right: rs(200) },
+    heroInner: { paddingTop: rs(24), paddingBottom: rs(8) },
 
-  heroInner: { paddingTop: rs(24), paddingBottom: rs(8) },
+    heroTitle: {
+      fontFamily: fonts.heading, fontSize: fontSize.hero,
+      color: colors.white, lineHeight: rs(46),
+      letterSpacing: -1, marginBottom: rs(14),
+    },
+    heroSub: {
+      fontFamily: fonts.body, fontSize: fontSize.base,
+      color: 'rgba(255,255,255,0.82)', lineHeight: rs(24),
+      marginBottom: rs(20),
+    },
 
-  heroTitle: {
-    fontFamily: fonts.heading, fontSize: fontSize.hero,
-    color: colors.white, lineHeight: rs(46),
-    letterSpacing: -1, marginBottom: rs(14),
-  },
-  heroSub: {
-    fontFamily: fonts.body, fontSize: fontSize.base,
-    color: 'rgba(255,255,255,0.82)', lineHeight: rs(24),
-    marginBottom: rs(20),
-  },
+    cardGrid:       { gap: rs(14) },
+    cardGridTablet: { flexDirection: 'row', flexWrap: 'wrap' },
+    cardTabletItem: { width: '47.5%' },
 
-  cardGrid:       { gap: rs(14) },
-  cardGridTablet: { flexDirection: 'row', flexWrap: 'wrap' },
-  cardTabletItem: { width: '47.5%' },
+    /* ══ SHARED ELEMENTS ══════════════════════════════════════════════════════ */
 
-  /* ══ SHARED ELEMENTS ══════════════════════════════════════════════════════ */
+    appBadge: {
+      flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start',
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      borderRadius: radius.full,
+      paddingHorizontal: rs(14), paddingVertical: rs(7),
+      marginBottom: rs(18), gap: rs(8),
+    },
+    appBadgeIcon:  { fontSize: rs(16) },
+    appBadgeLabel: {
+      fontFamily: fonts.bodySemi, fontSize: fontSize.sm,
+      color: colors.white, letterSpacing: 0.5,
+    },
 
-  appBadge: {
-    flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: radius.full,
-    paddingHorizontal: rs(14), paddingVertical: rs(7),
-    marginBottom: rs(20), gap: rs(8),
-  },
-  appBadgeIcon:  { fontSize: rs(16) },
-  appBadgeLabel: {
-    fontFamily: fonts.bodySemi, fontSize: fontSize.sm,
-    color: colors.white, letterSpacing: 0.5,
-  },
+    chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: rs(6) },
+    chip: {
+      backgroundColor: 'rgba(255,255,255,0.14)', borderRadius: radius.full,
+      paddingHorizontal: rs(10), paddingVertical: rs(4),
+      borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)',
+    },
+    chipText: {
+      fontFamily: fonts.bodySemi, fontSize: fontSize.xs,
+      color: 'rgba(255,255,255,0.92)', letterSpacing: 0.3,
+    },
 
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: rs(8) },
-  chip: {
-    backgroundColor: 'rgba(255,255,255,0.14)', borderRadius: radius.full,
-    paddingHorizontal: rs(12), paddingVertical: rs(5),
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)',
-  },
-  chipText: {
-    fontFamily: fonts.bodySemi, fontSize: fontSize.xs,
-    color: 'rgba(255,255,255,0.92)', letterSpacing: 0.3,
-  },
+    sectionLabel: {
+      fontFamily: fonts.bodySemi, fontSize: fontSize.xs,
+      color: colors.textMuted, letterSpacing: 1.8,
+      marginBottom: rs(14), textTransform: 'uppercase',
+    },
 
-  sectionLabel: {
-    fontFamily: fonts.bodySemi, fontSize: fontSize.xs,
-    color: colors.textMuted, letterSpacing: 1.8,
-    marginBottom: rs(16), textTransform: 'uppercase',
-  },
+    infoCard: {
+      marginTop: rs(20), borderRadius: radius.xl,
+      overflow: 'hidden', borderWidth: 1,
+      borderColor: colors.primaryBorder, ...shadows.sm,
+    },
+    infoGradient: {
+      flexDirection: 'row', alignItems: 'flex-start',
+      padding: rs(18), gap: rs(12),
+    },
+    infoIcon:  { fontSize: rs(20), marginTop: rs(2), flexShrink: 0 },
+    infoText:  { flex: 1, minWidth: 0 },
+    infoTitle: {
+      fontFamily: fonts.bodySemi, fontSize: fontSize.base,
+      color: colors.text, marginBottom: rs(4),
+    },
+    infoSub: {
+      fontFamily: fonts.body, fontSize: fontSize.sm,
+      color: colors.textSub, lineHeight: rs(20),
+    },
+    infoMono: { fontFamily: fonts.mono, color: colors.primary },
 
-  infoCard: {
-    marginTop: rs(24), borderRadius: radius.xl,
-    overflow: 'hidden', borderWidth: 1,
-    borderColor: colors.primaryBorder, ...shadows.sm,
-  },
-  infoGradient: {
-    flexDirection: 'row', alignItems: 'flex-start',
-    padding: rs(20), gap: rs(14),
-  },
-  infoIcon:  { fontSize: rs(22), marginTop: rs(2) },
-  infoText:  { flex: 1 },
-  infoTitle: {
-    fontFamily: fonts.bodySemi, fontSize: fontSize.base,
-    color: colors.text, marginBottom: rs(4),
-  },
-  infoSub: {
-    fontFamily: fonts.body, fontSize: fontSize.sm,
-    color: colors.textSub, lineHeight: rs(20),
-  },
-  infoMono: { fontFamily: fonts.mono, color: colors.primary },
-
-  footer: {
-    fontFamily: fonts.body, fontSize: fontSize.xs,
-    color: colors.textMuted, textAlign: 'center',
-    marginTop: rs(32), letterSpacing: 0.3,
-  },
-});
+    footer: {
+      fontFamily: fonts.body, fontSize: fontSize.xs,
+      color: colors.textMuted, textAlign: 'center',
+      marginTop: rs(28), letterSpacing: 0.3,
+    },
+  };
+}

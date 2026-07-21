@@ -5,18 +5,16 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, fonts, fontSize, radius, shadows, spacing, rs } from '../theme';
+import useTheme from '../hooks/useTheme';
 
 export default function ActionCard({ title, subtitle, icon, gradient, onPress, style }) {
-  const { width } = useWindowDimensions();
-  const isWide = width >= 768;
+  const { colors, fonts, fontSize, radius, shadows, rs } = useTheme();
 
-  const scale   = useRef(new Animated.Value(1)).current;
-  const glow    = useRef(new Animated.Value(0)).current;
+  const scale = useRef(new Animated.Value(1)).current;
+  const glow  = useRef(new Animated.Value(0)).current;
 
   const onPressIn  = () => Animated.parallel([
     Animated.spring(scale, { toValue: 0.965, useNativeDriver: true, tension: 200, friction: 10 }),
@@ -35,29 +33,68 @@ export default function ActionCard({ title, subtitle, icon, gradient, onPress, s
           colors={gradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.card, isWide && styles.cardWide]}
+          style={{
+            borderRadius: radius.xl,
+            padding: rs(20),
+            overflow: 'hidden',
+            ...shadows.md,
+          }}
         >
-          {/* Noise texture overlay */}
-          <Animated.View style={[styles.glowOverlay, { opacity: glow }]} />
+          {/* Glow overlay */}
+          <Animated.View style={[
+            StyleSheet.absoluteFill,
+            { borderRadius: radius.xl, backgroundColor: 'rgba(255,255,255,0.10)', opacity: glow },
+          ]} />
 
           {/* Decorative arc */}
-          <View style={styles.arc} />
+          <View style={{
+            position: 'absolute',
+            width: rs(180), height: rs(180), borderRadius: rs(90),
+            borderWidth: rs(36), borderColor: 'rgba(255,255,255,0.07)',
+            top: -rs(56), right: -rs(56),
+          }} />
 
-          <View style={styles.row}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: rs(14) }}>
             {/* Icon */}
-            <View style={styles.iconWrap}>
-              <Text style={styles.iconText}>{icon}</Text>
+            <View style={{
+              width: rs(50), height: rs(50), borderRadius: radius.lg,
+              backgroundColor: 'rgba(255,255,255,0.18)',
+              alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <Text style={{ fontSize: rs(24) }}>{icon}</Text>
             </View>
 
             {/* Text block */}
-            <View style={styles.textBlock}>
-              <Text style={styles.title}>{title}</Text>
-              <Text style={styles.subtitle} numberOfLines={2}>{subtitle}</Text>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={{
+                fontFamily: fonts.heading,
+                fontSize: fontSize.lg,
+                color: colors.white,
+                marginBottom: rs(4),
+                letterSpacing: -0.3,
+              }}>
+                {title}
+              </Text>
+              <Text style={{
+                fontFamily: fonts.body,
+                fontSize: fontSize.sm,
+                color: 'rgba(255,255,255,0.75)',
+                lineHeight: rs(18),
+              }} numberOfLines={2}>
+                {subtitle}
+              </Text>
             </View>
 
             {/* Arrow */}
-            <View style={styles.arrowWrap}>
-              <Text style={styles.arrow}>›</Text>
+            <View style={{
+              width: rs(30), height: rs(30), borderRadius: radius.full,
+              backgroundColor: 'rgba(255,255,255,0.18)',
+              alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <Text style={{
+                color: colors.white, fontSize: rs(20),
+                fontFamily: fonts.heading, lineHeight: rs(22), marginTop: -rs(2),
+              }}>›</Text>
             </View>
           </View>
         </LinearGradient>
@@ -65,79 +102,3 @@ export default function ActionCard({ title, subtitle, icon, gradient, onPress, s
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    borderRadius: radius.xl,
-    padding: rs(20),
-    overflow: 'hidden',
-    ...shadows.md,
-  },
-  cardWide: {
-    padding: rs(24),
-  },
-  glowOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    borderRadius: radius.xl,
-  },
-  arc: {
-    position: 'absolute',
-    width: rs(180),
-    height: rs(180),
-    borderRadius: rs(90),
-    borderWidth: rs(40),
-    borderColor: 'rgba(255,255,255,0.07)',
-    top: -rs(60),
-    right: -rs(60),
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: rs(14),
-  },
-  iconWrap: {
-    width: rs(52),
-    height: rs(52),
-    borderRadius: radius.lg,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  iconText: {
-    fontSize: rs(26),
-  },
-  textBlock: {
-    flex: 1,
-  },
-  title: {
-    fontFamily: fonts.heading,
-    fontSize: fontSize.lg,
-    color: colors.white,
-    marginBottom: rs(4),
-    letterSpacing: -0.3,
-  },
-  subtitle: {
-    fontFamily: fonts.body,
-    fontSize: fontSize.sm,
-    color: 'rgba(255,255,255,0.75)',
-    lineHeight: rs(18),
-  },
-  arrowWrap: {
-    width: rs(32),
-    height: rs(32),
-    borderRadius: radius.full,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  arrow: {
-    color: colors.white,
-    fontSize: rs(22),
-    fontFamily: fonts.heading,
-    lineHeight: rs(24),
-    marginTop: -rs(2),
-  },
-});

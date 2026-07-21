@@ -10,6 +10,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { colors, fonts, radius } from '../theme';
+import useTheme from '../hooks/useTheme';
 
 const NAV = [
   {
@@ -47,26 +48,26 @@ const NAV = [
 ];
 
 export default function DesktopLayout({ children, currentScreen }) {
-  const { width }  = useWindowDimensions();
+  const { isDesktop, sidebarWidth } = useTheme();
   const navigation = useNavigation();
 
   // Mobile / tablet → transparent passthrough
-  if (width < 1024) return <>{children}</>;
+  if (!isDesktop) return <>{children}</>;
 
   return (
     <View style={styles.root}>
 
       {/* ─── Sidebar ───────────────────────────────────────── */}
-      <View style={styles.sidebar}>
+      <View style={[styles.sidebar, { width: sidebarWidth }]}>
 
         {/* Brand */}
         <View style={styles.brand}>
           <LinearGradient colors={['#4F46E5', '#7C3AED']} style={styles.brandGrad}>
             <Text style={styles.brandEmoji}>🛡️</Text>
           </LinearGradient>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.brandName}>CryptVault</Text>
-            <Text style={styles.brandSub}>Military-grade encryption</Text>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={styles.brandName} numberOfLines={1}>CryptVault</Text>
+            <Text style={styles.brandSub} numberOfLines={1}>Military-grade encryption</Text>
           </View>
         </View>
 
@@ -97,14 +98,17 @@ export default function DesktopLayout({ children, currentScreen }) {
                 ]}>
                   <Text style={styles.navIcon}>{item.icon}</Text>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[
-                    styles.navItemLabel,
-                    active && { color: colors.text, fontFamily: fonts.bodySemi },
-                  ]}>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text
+                    style={[
+                      styles.navItemLabel,
+                      active && { color: colors.text, fontFamily: fonts.bodySemi },
+                    ]}
+                    numberOfLines={1}
+                  >
                     {item.label}
                   </Text>
-                  <Text style={styles.navItemDesc}>{item.desc}</Text>
+                  <Text style={styles.navItemDesc} numberOfLines={1}>{item.desc}</Text>
                 </View>
                 {active && (
                   <Text style={[styles.navArrow, { color: item.accent }]}>›</Text>
@@ -123,11 +127,11 @@ export default function DesktopLayout({ children, currentScreen }) {
           <View style={styles.footerBadges}>
             {['PBKDF2 · 600K', 'HMAC-SHA256', 'Zero-knowledge'].map(t => (
               <View key={t} style={styles.footerBadge}>
-                <Text style={styles.footerBadgeText}>{t}</Text>
+                <Text style={styles.footerBadgeText} numberOfLines={1}>{t}</Text>
               </View>
             ))}
           </View>
-          <Text style={styles.footerNote}>✓ Compatible with file_crypt.py</Text>
+          <Text style={styles.footerNote} numberOfLines={2}>✓ Compatible with file_crypt.py</Text>
         </View>
       </View>
 
@@ -149,11 +153,13 @@ const styles = StyleSheet.create({
 
   /* ── Sidebar ── */
   sidebar: {
-    width: 252,
+    // width applied inline (reactive)
+    flexShrink: 0,
     backgroundColor: colors.bg2,
     borderRightWidth: 1,
     borderRightColor: colors.border,
     flexDirection: 'column',
+    overflow: 'hidden',
   },
   brand: {
     flexDirection: 'row',
@@ -278,5 +284,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     overflow: 'hidden',
+    minWidth: 0,
   },
 });
